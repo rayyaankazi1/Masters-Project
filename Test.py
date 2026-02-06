@@ -25,76 +25,119 @@ def clean_text(text):
     # Remove everything except letters and spaces
     return re.sub(r'[^a-z\s]', '', text)
 
-# Data scraping function
+# Data Scraping function
 def run_thesis_scraper(limit=200):
     base_url = "https://www.casarosada.gob.ar/informacion/discursos"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    # Improved headers to look more like a real browser
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    }
     
     links = []
-    # 1. LOOP THROUGH PAGES (40 items per page usually)
-    # This will check page 0, 40, 80, 120, etc.
+    # Use a Session for better performance
+    session = requests.Session()
+    
+    print("--- PHASE 1: COLLECTING LINKS ---")
     for start in range(0, limit, 40):
         page_url = f"{base_url}?start={start}"
-        print(f"Fetching links from: {page_url}")
+        print(f"Checking page: {page_url}...", end=" ")
         
         try:
-            r = requests.get(page_url, headers=headers, timeout=10)
-            soup = BeautifulSoup(r.text, 'html.parser')
-            
-            # Find links on this specific page
-            page_links = []
-            for a in soup.find_all('a', href=True):
-                if '/informacion/discursos/' in a['href']:
-                    full_link = "https://www.casarosada.gob.ar" + a['href']
-                    if full_link not in links: 
-                        page_links.append(full_link)
-            
-            links.extend(page_links)
-            
-            # Stop if we found enough links or if the page has no links (end of results)
-            if len(links) >= limit or not page_links:
+            # Short timeout so it doesn't hang forever
+            r = session.get(page_url, headers=headers, timeout=10)
+            if r.status_code != 200:
+                print(f"Failed! (Status: {r.status_code})")
                 break
                 
-            time.sleep(1) # Be polite to the server
+            soup = BeautifulSoup(r.text, 'html.parser')
+            page_links = [
+                "https://www.casarosada.gob.ar" + a['href'] 
+                for a in soup.find_all('a', href=True) 
+                if '/informacion/discursos/' in a['href']
+            ]
+            
+            # Remove duplicates while keeping order
+            for l in page_links:
+                if l not in links: links.append(l)
+            
+            print(f"Found {len(page_links)} links. (Total so far: {len(links)})")
+            
+            if not page_links or len(links) >= limit:
+                break
+            
+            time.sleep(2) # Be extra polite
+            
         except Exception as e:
-            print(f"Error fetching page {start}: {e}")
+            print(f"\nCaught an error on page {start}: {e}")
             break
 
-    # Truncate to the exact limit
     links = links[:limit]
-    print(f"Total links gathered: {len(links)}")
-
-    # 2. SCRAPE EACH LINK (Same logic as yours)
+    
+    print(f"\n--- PHASE 2: SCRAPING {len(links)} SPEECHES ---")
     results = []
-    for link in links:
+    for i, link in enumerate(links):
         try:
-            print(f"Scraping content: {link.split('/')[-1]}...")
-            res = requests.get(link, headers=headers, timeout=10)
+            print(f"[{i+1}/{len(links)}] Scraping: {link.split('/')[-1][:30]}...", end="\r")
+            res = session.get(link, headers=headers, timeout=10)
             s = BeautifulSoup(res.text, 'html.parser')
             
-            # Content extraction
+            # Text extraction logic
             content_div = s.find('div', {'class': 'articulo-contenido'})
             raw_text = content_div.get_text(separator=" ") if content_div else " ".join([p.get_text() for p in s.find_all('p')])
             
-            # Calculations
             normalized_body = clean_text(raw_text)
             words = normalized_body.split()
             total_words = len(words)
             count = sum(words.count(clean_text(k)) for k in KEYWORDS)
-            density = (count / total_words) if total_words > 0 else 0
             
             results.append({
                 'Title': s.find('h1').text.strip() if s.find('h1') else "No Title",
                 'Fiscal_Count': count,
-                'Fiscal_Density': density,
-                'Total_Words': total_words,
-                'Found_Text': "Yes" if total_words > 0 else "No",
-                'URL': link
+                'Fiscal_Density': (count / total_words) if total_words > 0 else 0,
+                'Total_Words': total_words
             })
-            time.sleep(1)
+            time.sleep(1) # Delay between speech pages
+            
         except Exception as e:
-            print(f"Skipping link {link} due to error: {e}")
+            print(f"\nError on {link}: {e}")
 
+    print("\nScraping complete!")
     return pd.DataFrame(results)
 
+# --- 3. EXECUTION ---
+
+df = run_thesis_scraper(200)
+
+
+
+# --- 4. THE DIAGNOSIS ---
+
+if isinstance(df, pd.DataFrame):
+
+print("\n--- RESULTS ---")
+
+display(df)
+
+# Validation
+
+if df['Total_Words'].sum() == 0:
+
+print("\n DIAGNOSIS: The scraper found the pages but extracted 0 words.")
+
+print("Action: The website is blocking the content or using a new container tag.")
+
+elif df['Fiscal_Count'].sum() == 0:
+
+print("\n DIAGNOSIS: Text found, but zero keywords matched.")
+
+print(f"Action: Check your KEYWORDS list. Current list: {KEYWORDS}")
+
+else:
+
+print("\n SUCCESS: Data captured.")
+
+else:
+
+print(df)
 
