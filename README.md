@@ -1,10 +1,10 @@
 # Fiscal Hawkishness and Inflation Expectations in Argentina (2015–2026)
 
-A master's thesis project combining natural language processing of Argentine presidential speeches with Bayesian structural VAR analysis to study how fiscal-policy rhetoric affects the anchoring of inflation expectations under Kirchnerism, Macri's gradualism, and Milei's shock therapy.
+A master's thesis project combining natural language processing of Argentine presidential speeches with Bayesian structural VAR analysis to study how fiscal-policy rhetoric affects the anchoring of inflation expectations under Macri, Fernandez and Milei.
 
 ## Research question
 
-Does the fiscal-hawkishness content of presidential communication causally shift inflation expectations in Argentina, and has the pass-through from rhetoric to expectations changed under the Milei administration? The hypothesis, motivated by Reny's (2025) natural-language equilibrium framework, is that presidential speech moves expectations more strongly when the speaker's observable policy actions make rational deception implausible — a condition arguably satisfied post-December 2023 but not under prior administrations.
+Does the fiscal-hawkishness content of presidential communication causally shift inflation expectations in Argentina, and has the pass-through from rhetoric to expectations changed under the Milei administration? The hypothesis is that presidential speech moves expectations more strongly when the speaker's observable policy actions make rational deception implausible — a condition arguably satisfied post-December 2023 but not under prior administrations.
 
 ## Approach in one paragraph
 
