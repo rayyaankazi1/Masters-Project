@@ -8,11 +8,11 @@ Does the fiscal-hawkishness content of presidential communication causally shift
 
 ## Approach in one paragraph
 
-We construct a monthly time series of fiscal hawkishness from Argentine presidential speeches (2015–2026) using a validated dictionary-based NLP pipeline, cross-checked against LLM-based scoring and human labels. We then embed this series in a Bayesian structural VAR with inflation, inflation expectations (BCRA REM), the parallel exchange rate gap, and sovereign risk, identifying the structural hawkishness shock via sign restrictions and a narrative proxy-SVAR built around pre-specified announcement dates. We test for regime change in the rhetoric-to-expectations pass-through around Milei's inauguration.
+We construct a monthly time series of fiscal hawkishness from Argentine presidential speeches (2015–2026) using a validated dictionary-based NLP pipeline, cross-checked against LLM-based scoring and human labels. We then embed this series in a Bayesian structural VAR with inflation, inflation expectations (BCRA REM) and expectations of fiscal balance, identifying the structural hawkishness shock via sign restrictions and a narrative proxy-SVAR built around pre-specified announcement dates. We test for regime change in the rhetoric-to-expectations pass-through around Milei's inauguration.
 
 ## Theoretical grounding
 
-The econometric design follows Istrefi and Piloiu (2014), who use a news-based policy measure in a structural BVAR to study the response of long-horizon inflation expectations to policy shocks. Reny (2025) provides the theoretical motivation for when presidential language should be treated as informative versus cheap talk in a signaling game.
+The econometric design follows Istrefi and Piloiu (2014), who use a news-based policy measure in a structural BVAR to study the response of long-horizon inflation expectations to policy shocks. 
 
 ## Repository structure
 
@@ -51,11 +51,11 @@ The goal of this pipeline is a single output file, `data/processed/hawkishness_m
 
 ### Stage 1. Scraping (`signal/scraping/`)
 
-Collects the full corpus of presidential speeches, press conferences, and major televised addresses (*cadenas nacionales*) from the Casa Rosada archive, supplemented by key international appearances (Davos, UN General Assembly, CPAC). Each document is stored with metadata: date, speaker, venue, audience type, word count, and event category. The pre-registered sampling frame is documented in `signal/scraping/sampling_frame.md`.
+Collects the full corpus of presidential speeches, press conferences, and major televised addresses (*cadenas nacionales*) from the Casa Rosada archive, ***supplemented by key international appearances (Davos, UN General Assembly, CPAC)***. Each document is stored with word count and dare. The pre-registered sampling frame is documented in `signal/scraping/sampling_frame.md`.
 
 ### Stage 2. Preprocessing (`signal/preprocessing/`)
 
-Standard Spanish-language text normalization: sentence segmentation with spaCy's `es_core_news_lg`, lowercasing, punctuation handling, removal of ceremonial boilerplate (e.g., opening salutations, applause markers). Output is a paragraph-level dataframe with one row per paragraph and one `speech_id` per document.
+Standard Spanish-language text normalisation: sentence segmentation with spaCy's `es_core_news_lg`, lowercasing, punctuation handling, removal of ceremonial boilerplate (e.g., opening salutations, applause markers). Output is a paragraph-level dataframe with one row per paragraph and one `speech_id` per document.
 
 ### Stage 3. Topic modeling — LDA (`signal/topic_modeling/`)
 
@@ -65,7 +65,7 @@ Before any hawkishness scoring is applied, we run Latent Dirichlet Allocation on
 
 **Role 2 — descriptive validation.** The LDA topic distributions are an interpretable, model-free decomposition of the corpus. We report (i) the top-*k* words per topic to demonstrate that a fiscal/monetary topic is actually recovered and is distinct from other policy topics, (ii) the time series of the fiscal-topic share by president, which is itself a useful descriptive statistic for the thesis, and (iii) the distribution of dictionary-flagged hawkish terms across LDA topics, which checks that hawkish terms concentrate in the fiscal topic rather than being scattered across unrelated topics. If the dictionary's hits cluster cleanly in the fiscal topic, that is independent evidence that the score measures what it claims to measure.
 
-LDA is implemented in Gensim with a grid search over the number of topics (*k* ∈ {8, 10, 12, 15, 20}) selected by coherence score (*c_v*) on a held-out validation split. Hyperparameters (α, β) are optimized with the built-in auto-tuning.
+LDA is implemented in Gensim with a grid search over the number of topics (*k* ∈ {5, 8, 10, 12, 15, 20}) selected by coherence score (*c_v*) on a held-out validation split. Hyperparameters (α, β) are optimized with the built-in auto-tuning.
 
 ### Stage 4. Dictionary-based scoring (`signal/scoring/tfidf_dictionary.py`)
 
