@@ -9,6 +9,10 @@ beautifulsoup4
 # NLP
 spacy
 gensim
+pyLDAvis
+wordcloud
+matplotlib
+seaborn
 
 # LLM scoring
 anthropic
