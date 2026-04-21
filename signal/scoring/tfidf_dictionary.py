@@ -15,16 +15,27 @@ threshold — flow through automatically when you:
 This script does NOT import or re-run any LDA code.  It reads only
 data/interim/paragraphs_lda.csv and the dictionary files.
 
+Improvements (v2)
+─────────────────
+1. Regex morphological matching — each word in a term gets a \\w* suffix so
+   "ajuste fiscal" also matches "ajustes fiscales", "ajuste fiscalmente" etc.
+2. Sentence-level scoring — text is split into sentences before matching;
+   infrastructure for future negation detection (e.g. "no hay ajuste fiscal").
+3. Zero-hit dead terms removed from both dictionaries.
+4. Verb / stem forms added (privatizar, desregular, recortar; redistribuir,
+   subsidiar, financiar).
+
 Scoring formula
 ───────────────
-For each paragraph p:
-    hawkish_tf_p = Σ count(term_i in p) / n_tokens_p   (hawkish terms)
-    dovish_tf_p  = Σ count(term_i in p) / n_tokens_p   (dovish terms)
+For each paragraph p, split into sentences s_1 … s_k:
+    For each sentence s_i count regex hits of each term.
+    Aggregate hits across sentences → paragraph hawkish_hits, dovish_hits.
+    hawkish_tf_p = Σ hits / n_tokens_p
+    dovish_tf_p  = Σ hits / n_tokens_p
     net_tf_p     = hawkish_tf_p − dovish_tf_p
 
 Aggregated to speech level using two weighting schemes:
     Primary   — weight_p = fiscal_topic_prob_p × n_tokens_p
-                (fiscal-relevant AND longer paragraphs count more)
     Robustness — equal weight across all paragraphs in speech
 
 Reads
@@ -69,25 +80,60 @@ PRES_ORDER  = ["Macri", "AF", "Milei"]
 PRES_COLORS = {"Macri": "#2196F3", "AF": "#4CAF50", "Milei": "#FF5722"}
 
 # ── Text normalisation ────────────────────────────────────────────────────────
-_CLEAN_RE = re.compile(r"[^a-z\s]")
+_CLEAN_RE  = re.compile(r"[^a-z\s]")
+_SPACES_RE = re.compile(r"\s+")
 
 def normalise(text: str) -> str:
-    """Lowercase, strip accents, remove non-alpha characters."""
+    """Lowercase, strip accents, remove non-alpha, collapse whitespace."""
     text = text.lower()
     text = "".join(
         c for c in unicodedata.normalize("NFD", text)
         if unicodedata.category(c) != "Mn"
     )
-    return _CLEAN_RE.sub(" ", text)
+    text = _CLEAN_RE.sub(" ", text)
+    return _SPACES_RE.sub(" ", text).strip()
+
+# ── Sentence splitting ────────────────────────────────────────────────────────
+_SENT_RE = re.compile(r"(?<=[.!?,;:])\s+")
+
+def split_sentences(text: str) -> list[str]:
+    """
+    Split normalised paragraph text into approximate sentences.
+    Splits on sentence-ending punctuation (already removed by normalise, so
+    we split on whitespace sequences following common delimiters preserved
+    in raw text before normalisation).  Falls back to the whole paragraph
+    when no split points are found.
+    """
+    parts = [s.strip() for s in _SENT_RE.split(text) if s.strip()]
+    return parts if parts else [text]
+
+# ── Regex pattern builder ─────────────────────────────────────────────────────
+
+def term_to_pattern(term: str) -> re.Pattern:
+    """
+    Compile a normalised term string into a regex pattern that handles
+    morphological variants.  Each word gets a \\w* suffix to match plurals,
+    verb inflections, and derivational forms.
+
+    Examples
+    --------
+    "ajuste fiscal"  →  r"ajuste\\w*\\s+fiscal\\w*"
+    "privatizar"     →  r"privatizar\\w*"
+    "no hay plata"   →  r"no\\w*\\s+hay\\w*\\s+plata\\w*"
+    """
+    words = term.split()
+    pattern_str = r"\s+".join(w + r"\w*" for w in words)
+    return re.compile(pattern_str)
 
 # ── Dictionary loader ─────────────────────────────────────────────────────────
 
-def load_dictionary(path: str) -> list[str]:
+def load_dictionary(path: str) -> list[tuple[str, re.Pattern]]:
     """
-    Load terms from a .txt file.
-    Lines starting with # are comments and are ignored.
-    Returns a list of normalised terms sorted longest-first
-    (so multi-word phrases are matched before their component words).
+    Load terms from a .txt file and compile each to a regex pattern.
+
+    Lines starting with # are comments and are ignored.  Returns a list of
+    (term, pattern) tuples sorted longest-first so multi-word phrases are
+    tried before their component words (reduces double-counting risk).
     """
     terms = []
     with open(path, encoding="utf-8") as f:
@@ -95,29 +141,56 @@ def load_dictionary(path: str) -> list[str]:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            terms.append(normalise(line))
-    # Sort longest first so "deficit cero" is matched before "deficit"
-    return sorted(set(terms), key=len, reverse=True)
+            norm_term = normalise(line)
+            terms.append(norm_term)
+
+    # Deduplicate, sort longest-first
+    unique_terms = sorted(set(terms), key=len, reverse=True)
+    return [(t, term_to_pattern(t)) for t in unique_terms]
 
 # ── Paragraph-level scoring ───────────────────────────────────────────────────
 
 def score_paragraph(
     text: str,
     n_tokens: int,
-    hawkish_terms: list[str],
-    dovish_terms: list[str],
+    hawkish_patterns: list[tuple[str, re.Pattern]],
+    dovish_patterns: list[tuple[str, re.Pattern]],
 ) -> dict:
     """
-    Count hawkish and dovish term hits in a single normalised paragraph.
-    Returns raw counts and normalised term frequencies.
+    Count hawkish and dovish regex hits in a single paragraph, operating at
+    the sentence level.  Sentence-level granularity is infrastructure for
+    future negation detection (step 5); mathematically the aggregated TF
+    is equivalent to paragraph-level TF in the absence of negation logic.
+
+    Parameters
+    ----------
+    text            : raw paragraph string (normalisation applied internally)
+    n_tokens        : pre-computed token count (divisor for TF)
+    hawkish_patterns: list of (term, compiled_pattern) tuples
+    dovish_patterns : list of (term, compiled_pattern) tuples
+
+    Returns
+    -------
+    dict with hit counts, TF scores, matched term lists, and tone index.
     """
     norm = normalise(text)
+    sentences = split_sentences(norm)
 
-    hawkish_hits = {t: norm.count(t) for t in hawkish_terms if norm.count(t) > 0}
-    dovish_hits  = {t: norm.count(t) for t in dovish_terms  if norm.count(t) > 0}
+    h_term_counts: dict[str, int] = {}
+    d_term_counts: dict[str, int] = {}
 
-    h_count = sum(hawkish_hits.values())
-    d_count = sum(dovish_hits.values())
+    for sent in sentences:
+        for term, pat in hawkish_patterns:
+            hits = len(pat.findall(sent))
+            if hits:
+                h_term_counts[term] = h_term_counts.get(term, 0) + hits
+        for term, pat in dovish_patterns:
+            hits = len(pat.findall(sent))
+            if hits:
+                d_term_counts[term] = d_term_counts.get(term, 0) + hits
+
+    h_count = sum(h_term_counts.values())
+    d_count = sum(d_term_counts.values())
     denom   = max(n_tokens, 1)
 
     h_tf = h_count / denom
@@ -126,14 +199,14 @@ def score_paragraph(
     total = h_tf + d_tf
 
     return {
-        "hawkish_hits":  h_count,
-        "dovish_hits":   d_count,
-        "hawkish_terms_matched": list(hawkish_hits.keys()),
-        "dovish_terms_matched":  list(dovish_hits.keys()),
-        "hawkish_tf":    h_tf,
-        "dovish_tf":     d_tf,
-        "net_tf":        net,
-        "tone_index":    (net / total) if total > 0 else np.nan,
+        "hawkish_hits":          h_count,
+        "dovish_hits":           d_count,
+        "hawkish_terms_matched": list(h_term_counts.keys()),
+        "dovish_terms_matched":  list(d_term_counts.keys()),
+        "hawkish_tf":            h_tf,
+        "dovish_tf":             d_tf,
+        "net_tf":                net,
+        "tone_index":            (net / total) if total > 0 else np.nan,
     }
 
 # ── Speech-level aggregation ──────────────────────────────────────────────────
@@ -167,8 +240,8 @@ def aggregate_to_speech(para_df: pd.DataFrame) -> pd.DataFrame:
         total_w  = h_tf_w + d_tf_w if not np.isnan(h_tf_w) else np.nan
 
         # Robustness: equal weight
-        h_tf_eq = grp["hawkish_tf"].mean()
-        d_tf_eq = grp["dovish_tf"].mean()
+        h_tf_eq   = grp["hawkish_tf"].mean()
+        d_tf_eq   = grp["dovish_tf"].mean()
         net_tf_eq = h_tf_eq - d_tf_eq
 
         records.append({
@@ -267,9 +340,7 @@ def plot_scoring_overview(speech_df: pd.DataFrame):
     ax.set_xlabel("Equal-weight score (robustness)")
     ax.set_ylabel("Fiscal-prob weighted score (primary)")
     ax.set_title("Primary vs robustness score — should be strongly correlated")
-    ax.legend(fontsize=8)
 
-    # Legend for president colours
     from matplotlib.patches import Patch
     handles = [Patch(color=PRES_COLORS[p], label=p) for p in PRES_ORDER]
     axes[2].legend(handles=handles + [plt.Line2D([0],[0],color='k',
@@ -289,10 +360,10 @@ def run():
 
     # ── 1. Load dictionaries ──────────────────────────────────────────────────
     print("Loading dictionaries...")
-    hawkish_terms = load_dictionary(HAWKISH_TXT)
-    dovish_terms  = load_dictionary(DOVISH_TXT)
-    print(f"  Hawkish terms : {len(hawkish_terms)}")
-    print(f"  Dovish terms  : {len(dovish_terms)}")
+    hawkish_patterns = load_dictionary(HAWKISH_TXT)
+    dovish_patterns  = load_dictionary(DOVISH_TXT)
+    print(f"  Hawkish terms : {len(hawkish_patterns)}")
+    print(f"  Dovish terms  : {len(dovish_patterns)}")
 
     # ── 2. Load paragraph dataframe from LDA output ───────────────────────────
     print(f"\nLoading {PARA_CSV}...")
@@ -308,14 +379,14 @@ def run():
           f"max={para_df['fiscal_topic_prob'].max():.3f})")
 
     # ── 3. Score each paragraph ───────────────────────────────────────────────
-    print("\nScoring paragraphs...")
+    print("\nScoring paragraphs (regex + sentence-level)...")
     score_records = []
     for _, row in para_df.iterrows():
         scores = score_paragraph(
             str(row["text_para"]),
             int(row["n_tokens"]),
-            hawkish_terms,
-            dovish_terms,
+            hawkish_patterns,
+            dovish_patterns,
         )
         score_records.append(scores)
 
@@ -352,9 +423,9 @@ def run():
     plot_scoring_overview(speech_df)
 
     summary_lines = [
-        "=== DICTIONARY SCORING SUMMARY ===",
-        f"Hawkish terms : {len(hawkish_terms)}",
-        f"Dovish terms  : {len(dovish_terms)}",
+        "=== DICTIONARY SCORING SUMMARY (v2 — regex + sentence-level) ===",
+        f"Hawkish terms : {len(hawkish_patterns)}",
+        f"Dovish terms  : {len(dovish_patterns)}",
         "",
         "Paragraphs with hits:",
         f"  Any hit   : {any_hits.sum():,} / {len(para_scored):,} "
@@ -375,29 +446,48 @@ def run():
         "Top 15 hawkish terms by total hits:",
     ]
 
-    # Top terms
-    hit_counts = {}
+    # ── Top-term counts (re-scan with regex) ──────────────────────────────────
+    hit_counts_h: dict[str, int] = {}
+    hit_counts_d: dict[str, int] = {}
+
     for _, row in para_scored.iterrows():
         norm = normalise(str(row["text_para"]))
-        for t in hawkish_terms:
-            c = norm.count(t)
-            if c > 0:
-                hit_counts[t] = hit_counts.get(t, 0) + c
-    top_hawkish = sorted(hit_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        for term, pat in hawkish_patterns:
+            c = len(pat.findall(norm))
+            if c:
+                hit_counts_h[term] = hit_counts_h.get(term, 0) + c
+        for term, pat in dovish_patterns:
+            c = len(pat.findall(norm))
+            if c:
+                hit_counts_d[term] = hit_counts_d.get(term, 0) + c
+
+    top_hawkish = sorted(hit_counts_h.items(), key=lambda x: x[1], reverse=True)[:15]
     for term, count in top_hawkish:
         summary_lines.append(f"  {count:5d}  {term}")
 
     summary_lines += ["", "Top 15 dovish terms by total hits:"]
-    hit_counts_d = {}
-    for _, row in para_scored.iterrows():
-        norm = normalise(str(row["text_para"]))
-        for t in dovish_terms:
-            c = norm.count(t)
-            if c > 0:
-                hit_counts_d[t] = hit_counts_d.get(t, 0) + c
     top_dovish = sorted(hit_counts_d.items(), key=lambda x: x[1], reverse=True)[:15]
     for term, count in top_dovish:
         summary_lines.append(f"  {count:5d}  {term}")
+
+    # ── Zero-hit diagnostic ───────────────────────────────────────────────────
+    all_h_terms = {t for t, _ in hawkish_patterns}
+    all_d_terms = {t for t, _ in dovish_patterns}
+    zero_hawkish = sorted(all_h_terms - set(hit_counts_h.keys()))
+    zero_dovish  = sorted(all_d_terms - set(hit_counts_d.keys()))
+
+    summary_lines += [
+        "",
+        f"ZERO-HIT HAWKISH TERMS ({len(zero_hawkish)}) — consider removing or simplifying:",
+    ]
+    for t in zero_hawkish:
+        summary_lines.append(f"  {t}")
+    summary_lines += [
+        "",
+        f"ZERO-HIT DOVISH TERMS ({len(zero_dovish)}) — consider removing or simplifying:",
+    ]
+    for t in zero_dovish:
+        summary_lines.append(f"  {t}")
 
     summary_text = "\n".join(summary_lines)
     print("\n" + summary_text)

@@ -1,29 +1,31 @@
 # Hawkish fiscal terms — Argentine presidential speeches
-# One term per line (lowercase, no accents — must match normalised text)
-# Multi-word phrases are matched as substrings in normalised paragraph text
+# One term per line (lowercase, no accents)
+# Regex matching: each word gets \w* suffix so "ajuste fiscal" also matches
+# "ajustes fiscales", "ajuste fiscalmente" etc.
 # Last reviewed: 2026-04
-#
-# REMOVED: "equilibrio fiscal" — too aspirational, used by all presidents
-#          including AF when describing IMF programme targets. Replaced with
-#          more specific commitment phrases below.
 
 # ── Core fiscal tightening ────────────────────────────────────────────────────
 deficit cero
+cero deficit
 superavit fiscal
 superavit financiero
+superavit primario
 equilibrio presupuestario
 ajuste fiscal
 consolidacion fiscal
-saneamiento fiscal
 reforma fiscal
 reduccion del gasto
-recorte presupuestario
 recorte del gasto
+baja del gasto
 presupuesto equilibrado
 meta fiscal
-equilibrio de las cuentas publicas
-cuentas publicas equilibradas
-tolerancia cero al deficit
+responsabilidad fiscal
+orden fiscal
+equilibrio de las cuentas
+deficit primario
+reduccion del deficit
+eliminacion del deficit
+gasto improductivo
 
 # ── Milei-era specific ────────────────────────────────────────────────────────
 motosierra
@@ -33,26 +35,17 @@ la casta
 casta politica
 emision cero
 emision monetaria cero
-shock de desregulacion
 shock fiscal
-deficit heredado
-herencia maldita
-desastre fiscal
-caos fiscal
 orgia de gasto
-estado elefantico
-viva la libertad
-deficit es robo
 impuesto inflacionario
+reduccion de ministerios
+viva la libertad
+deficit es inflacion
 
 # ── Monetary tightening ───────────────────────────────────────────────────────
 base monetaria
 independencia del banco central
-fin de la emision
 cero emision
-desindexacion
-eliminacion de subsidios
-quita de subsidios
 reduccion de subsidios
 
 # ── Structural reform / liberalisation ───────────────────────────────────────
@@ -62,19 +55,14 @@ apertura economica
 libre mercado
 economia libre
 libre comercio
-eliminacion de ministerios
 reduccion del estado
-achicamiento del estado
-estado minimo
 reforma del estado
 shock de oferta
+ajuste estructural
 
-# ── Macri-era specific ────────────────────────────────────────────────────────
-gradual pero firme
-responsabilidad fiscal
-orden fiscal
-equilibrio de las cuentas
-cuentas equilibradas
-deficit primario
-reduccion del deficit
-baja del gasto
+# ── Verb / stem forms ─────────────────────────────────────────────────────────
+# These are stems — regex will match all morphological variants:
+# "privatizar" matches privatizamos, privatizacion, privatizado etc.
+privatizar
+desregular
+recortar

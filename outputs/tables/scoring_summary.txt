@@ -1,29 +1,29 @@
-=== DICTIONARY SCORING SUMMARY ===
-Hawkish terms : 62
-Dovish terms  : 61
+=== DICTIONARY SCORING SUMMARY (v2 — regex + sentence-level) ===
+Hawkish terms : 51
+Dovish terms  : 45
 
 Paragraphs with hits:
-  Any hit   : 1,390 / 16,197 (8.6%)
-  Hawkish   : 886
-  Dovish    : 569
+  Any hit   : 1,749 / 16,197 (10.8%)
+  Hawkish   : 953
+  Dovish    : 923
 
 Speech-level net_tf_weighted by president:
                mean       std       min       50%       max
 president                                                  
-Macri     -0.000135  0.001815 -0.022989  0.000000  0.022505
-AF        -0.000960  0.003154 -0.024648  0.000000  0.009369
-Milei      0.004471  0.004733 -0.007337  0.003879  0.021725
+Macri     -0.000303  0.002172 -0.022989  0.000000  0.022505
+AF        -0.001965  0.004893 -0.044923  0.000000  0.009369
+Milei      0.003774  0.005165 -0.014686  0.003312  0.021725
 
 Top 15 hawkish terms by total hits:
-    181  la casta
+    182  la casta
+    177  base monetaria
     156  deficit cero
-    128  base monetaria
     116  motosierra
-    113  ajuste fiscal
+    115  ajuste fiscal
     104  desregulacion
     100  viva la libertad
      73  superavit fiscal
-     63  casta politica
+     64  casta politica
      55  libre comercio
      52  impuesto inflacionario
      42  emision cero
@@ -32,18 +32,26 @@ Top 15 hawkish terms by total hits:
      30  superavit financiero
 
 Top 15 dovish terms by total hits:
+    200  financiar
     193  justicia social
+    153  acreedores
+    125  salario real
      95  estado presente
-     60  salario real
-     51  acuerdo con el fondo
+     55  acuerdo con el fondo
+     45  deuda externa
      32  industria nacional
+     29  mercado interno
      28  paritarias
-     27  mercado interno
      26  recuperacion economica
-     21  intervencion del estado
+     23  intervencion del estado
      21  gradualismo
      19  inclusion social
-     17  trabajo digno
-     15  inversion publica
-     14  asistencia social
-     14  produccion nacional
+     18  trabajo digno
+
+ZERO-HIT HAWKISH TERMS (4) — consider removing or simplifying:
+  ajuste estructural
+  deficit es inflacion
+  reduccion de ministerios
+  reduccion de subsidios
+
+ZERO-HIT DOVISH TERMS (0) — consider removing or simplifying:

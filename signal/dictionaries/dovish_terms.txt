@@ -1,37 +1,34 @@
 # Dovish fiscal terms — Argentine presidential speeches
 # One term per line (lowercase, no accents — must match normalised text)
-# Multi-word phrases are matched as substrings in normalised paragraph text
+# Regex matching: each word gets \w* suffix so "gasto social" also matches
+# "gastos sociales", "gasto socialmente" etc.
 # Last reviewed: 2026-04
 #
-# REMOVED: "obra publica" and "obras publicas" — too ubiquitous across all
+# REMOVED: "obra publica" / "obras publicas" — too ubiquitous across all
 #          administrations regardless of fiscal stance (Macri built roads too).
-#          Replaced with more specific redistributive/expansionary phrases.
+# REMOVED (zero-hit on corpus): ajuste gradual, alivio de la deuda,
+#   amortiguacion social, cobertura social, deficit financiado, deficit
+#   sostenible, deuda sustentable, estimulo fiscal, expansion fiscal,
+#   gasto publico productivo, gradual y sostenido, impulso fiscal,
+#   incremento presupuestario, planificacion economica, politica expansiva,
+#   politica gradualista, politicas redistributivas, quita de deuda,
+#   recuperacion con equidad, red de proteccion, regulacion estatal,
+#   restructuracion de la deuda, subsidios sociales, transferencias sociales
 
 # ── Expansionary fiscal stance ────────────────────────────────────────────────
 inversion publica
-expansion fiscal
-estimulo fiscal
-politica expansiva
 politica fiscal expansiva
-gasto publico productivo
 aumento del gasto
 incremento del gasto
-impulso fiscal
 inversion en infraestructura
 financiamiento del deficit
-deficit financiado
-deficit sostenible
 mayor gasto publico
-incremento presupuestario
 
 # ── Social spending / redistribution ─────────────────────────────────────────
 proteccion social
 justicia social
 inclusion social
 gasto social
-transferencias sociales
-subsidios sociales
-politicas redistributivas
 redistribucion del ingreso
 inversion social
 asistencia social
@@ -39,20 +36,15 @@ estado presente
 estado activo
 rol del estado
 intervencion del estado
-regulacion estatal
-planificacion economica
-cobertura social
 seguridad social
 
 # ── AF-era specific ───────────────────────────────────────────────────────────
 acuerdo con el fondo
-restructuracion de la deuda
-quita de deuda
-alivio de la deuda
-deuda sustentable
+reestructuracion de la deuda
 deuda sostenible
+deuda externa
 crecimiento con inclusion
-recuperacion con equidad
+crecimiento inclusivo
 reactivacion economica
 recuperacion economica
 produccion nacional
@@ -66,12 +58,18 @@ paritarias
 
 # ── Macri-era dovish framing ──────────────────────────────────────────────────
 gradualismo
-politica gradualista
-ajuste gradual
-gradual y sostenido
 financiamiento externo
 apoyo del fondo
 sectores vulnerables
 proteger a los vulnerables
-red de proteccion
-amortiguacion social
+
+# ── Unambiguous single-word / stem terms ──────────────────────────────────────
+redistribucion
+acreedores
+
+# ── Verb / stem forms ─────────────────────────────────────────────────────────
+# Stems — regex will match all morphological variants:
+# "redistribuir" matches redistribuimos, redistribucion, redistribuido etc.
+redistribuir
+subsidiar
+financiar
