@@ -67,10 +67,16 @@ tarjeta alimentar
 programa de recuperacion
 
 # ── Macri-era dovish framing ──────────────────────────────────────────────────
+# Corpus audit added: asignacion universal (AUH child allowance — signature
+# Macri-era social transfer, 16 hits in fiscal zero-hit paragraphs) and
+# proceso gradual (gradualismo framing — explicitly accepting short-run
+# deficits, the dovish counterpart to Milei's shock vocabulary).
 financiamiento externo
 apoyo del fondo
 sectores vulnerables
 proteger a los vulnerables
+asignacion universal
+proceso gradual
 
 # ── Noun forms ────────────────────────────────────────────────────────────────
 # Using noun "subsidios" to avoid false-positive match on "subsidiaria/subsidiariedad"

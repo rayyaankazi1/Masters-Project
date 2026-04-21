@@ -7,11 +7,13 @@
 # Literature basis: Alesina & Ardagna (2010), Guajardo et al. (2011),
 # Kopits & Symansky (1998) fiscal rules, Barro-Gordon credibility framework.
 #
-# REMOVED (zero-hit): actualizacion tarifaria, ajuste estructural,
-#   alivio impositivo, consolidacion presupuestaria, credibilidad fiscal,
-#   deficit es inflacion, eliminacion de subsidios, fin de los subsidios,
-#   quita de subsidios, reduccion de ministerios, reduccion de subsidios
+# REMOVED (zero-hit): ajuste estructural, alivio impositivo,
+#   consolidacion presupuestaria, credibilidad fiscal, deficit es inflacion,
+#   eliminacion de subsidios, fin de los subsidios, quita de subsidios,
+#   reduccion de ministerios, reduccion de subsidios
 #   — these concepts appear in the corpus but not via these exact phrasings.
+#   NOTE: actualizacion tarifaria was previously zero-hit but re-added below
+#   after corpus audit showed Macri uses verb form "actualizar tarifas".
 #
 # REMOVED (Milei-specific political branding — not cross-president vocabulary):
 #   motosierra, licuadora — fiscal metaphors exclusive to Milei's register;
@@ -86,6 +88,17 @@ libre comercio
 reduccion del estado
 reforma del estado
 shock de oferta
+
+# ── Macri-era gradualismo / anti-inflation vocabulary ────────────────────────
+# Corpus audit: Macri uses verb constructions where our noun phrases miss him.
+# E.g. "bajar la inflación, los impuestos, el déficit, el gasto público" scores
+# zero because our patterns require "baja DEL gasto" / "reduccion DEL deficit".
+# These verb-form entries close that gap without being president-specific.
+bajar la inflacion
+reducir la inflacion
+ordenar las cuentas
+sinceramiento
+actualizacion tarifaria
 
 # ── Verb / stem forms ─────────────────────────────────────────────────────────
 # Stems — regex matches all morphological variants:
