@@ -1,0 +1,39 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data — raw speeches and processed files are not redistributed
+# (retrieval scripts are included instead — see data/README.md)
+data/raw/
+data/interim/
+data/processed/
+
+# Environment variables (API keys etc.)
+.env
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+renv/library/
+
+# Outputs (generated, not source-controlled)
+outputs/figures/
+outputs/tables/

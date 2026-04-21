@@ -1,0 +1,18 @@
+# Core data
+numpy
+pandas
+
+# Scraping
+requests
+beautifulsoup4
+
+# NLP
+spacy
+gensim
+
+# LLM scoring
+anthropic
+
+# Utilities
+tqdm
+python-dotenv
