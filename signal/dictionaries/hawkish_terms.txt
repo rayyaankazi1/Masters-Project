@@ -2,13 +2,15 @@
 # One term per line (lowercase, no accents — must match normalised text)
 # Multi-word phrases are matched as substrings in normalised paragraph text
 # Last reviewed: 2026-04
-# Note: extend after LDA and LLM validation runs
+#
+# REMOVED: "equilibrio fiscal" — too aspirational, used by all presidents
+#          including AF when describing IMF programme targets. Replaced with
+#          more specific commitment phrases below.
 
 # ── Core fiscal tightening ────────────────────────────────────────────────────
 deficit cero
 superavit fiscal
 superavit financiero
-equilibrio fiscal
 equilibrio presupuestario
 ajuste fiscal
 consolidacion fiscal
@@ -19,6 +21,9 @@ recorte presupuestario
 recorte del gasto
 presupuesto equilibrado
 meta fiscal
+equilibrio de las cuentas publicas
+cuentas publicas equilibradas
+tolerancia cero al deficit
 
 # ── Milei-era specific ────────────────────────────────────────────────────────
 motosierra
@@ -36,6 +41,9 @@ desastre fiscal
 caos fiscal
 orgia de gasto
 estado elefantico
+viva la libertad
+deficit es robo
+impuesto inflacionario
 
 # ── Monetary tightening ───────────────────────────────────────────────────────
 base monetaria

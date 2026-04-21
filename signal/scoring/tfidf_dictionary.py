@@ -197,6 +197,16 @@ def aggregate_to_speech(para_df: pd.DataFrame) -> pd.DataFrame:
     speech_df = pd.DataFrame(records)
     speech_df["date"] = pd.to_datetime(speech_df["date"])
     speech_df.sort_values("date", inplace=True, ignore_index=True)
+
+    # ── Z-score normalisation (full sample) ───────────────────────────────────
+    # Normalised over the full sample so cross-president differences are
+    # preserved in the z-score.  Raw scores are kept alongside for descriptive
+    # analysis.  Use net_tf_weighted_z as the BVAR input.
+    for col in ["net_tf_weighted", "tone_index_weighted", "net_tf_equal"]:
+        mu  = speech_df[col].mean()
+        sig = speech_df[col].std()
+        speech_df[f"{col}_z"] = (speech_df[col] - mu) / sig if sig > 0 else 0.0
+
     return speech_df
 
 # ── Plots ─────────────────────────────────────────────────────────────────────

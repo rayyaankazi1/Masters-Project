@@ -2,7 +2,10 @@
 # One term per line (lowercase, no accents — must match normalised text)
 # Multi-word phrases are matched as substrings in normalised paragraph text
 # Last reviewed: 2026-04
-# Note: extend after LDA and LLM validation runs
+#
+# REMOVED: "obra publica" and "obras publicas" — too ubiquitous across all
+#          administrations regardless of fiscal stance (Macri built roads too).
+#          Replaced with more specific redistributive/expansionary phrases.
 
 # ── Expansionary fiscal stance ────────────────────────────────────────────────
 inversion publica
@@ -14,11 +17,12 @@ gasto publico productivo
 aumento del gasto
 incremento del gasto
 impulso fiscal
-obra publica
-obras publicas
+inversion en infraestructura
 financiamiento del deficit
 deficit financiado
 deficit sostenible
+mayor gasto publico
+incremento presupuestario
 
 # ── Social spending / redistribution ─────────────────────────────────────────
 proteccion social
@@ -37,6 +41,8 @@ rol del estado
 intervencion del estado
 regulacion estatal
 planificacion economica
+cobertura social
+seguridad social
 
 # ── AF-era specific ───────────────────────────────────────────────────────────
 acuerdo con el fondo
@@ -52,7 +58,7 @@ recuperacion economica
 produccion nacional
 industria nacional
 mercado interno
-sustitusion de importaciones
+sustitucion de importaciones
 empleo digno
 trabajo digno
 salario real
