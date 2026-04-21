@@ -32,6 +32,5 @@ data/processed/
 .Rproj.user/
 renv/library/
 
-# Outputs (generated, not source-controlled)
-outputs/figures/
+# Tables (generated)
 outputs/tables/
