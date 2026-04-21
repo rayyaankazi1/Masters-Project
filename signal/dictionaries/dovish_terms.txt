@@ -4,16 +4,12 @@
 # "gastos sociales", "gasto socialmente" etc.
 # Last reviewed: 2026-04
 #
-# REMOVED: "obra publica" / "obras publicas" — too ubiquitous across all
-#          administrations regardless of fiscal stance (Macri built roads too).
-# REMOVED (zero-hit on corpus): ajuste gradual, alivio de la deuda,
-#   amortiguacion social, cobertura social, deficit financiado, deficit
-#   sostenible, deuda sustentable, estimulo fiscal, expansion fiscal,
-#   gasto publico productivo, gradual y sostenido, impulso fiscal,
-#   incremento presupuestario, planificacion economica, politica expansiva,
-#   politica gradualista, politicas redistributivas, quita de deuda,
-#   recuperacion con equidad, red de proteccion, regulacion estatal,
-#   restructuracion de la deuda, subsidios sociales, transferencias sociales
+# Literature basis: Blanchard & Leigh (2013) fiscal multipliers,
+# Dornbusch & Edwards (1991) populist cycles, ECLAC structuralist tradition.
+#
+# REMOVED (zero-hit): amortiguacion social, espacio fiscal,
+#   multiplicador fiscal, politica anticiclica, politica contraciclica
+#   — academic terms that do not appear in presidential speech registers.
 
 # ── Expansionary fiscal stance ────────────────────────────────────────────────
 inversion publica
@@ -23,8 +19,10 @@ incremento del gasto
 inversion en infraestructura
 financiamiento del deficit
 mayor gasto publico
+estimulo economico
 
 # ── Social spending / redistribution ─────────────────────────────────────────
+# Dornbusch & Edwards (1991): redistributive populist cycle
 proteccion social
 justicia social
 inclusion social
@@ -32,11 +30,13 @@ gasto social
 redistribucion del ingreso
 inversion social
 asistencia social
+bienestar social
 estado presente
 estado activo
 rol del estado
 intervencion del estado
 seguridad social
+derechos sociales
 
 # ── AF-era specific ───────────────────────────────────────────────────────────
 acuerdo con el fondo
@@ -55,6 +55,9 @@ empleo digno
 trabajo digno
 salario real
 paritarias
+aporte extraordinario
+tarjeta alimentar
+programa de recuperacion
 
 # ── Macri-era dovish framing ──────────────────────────────────────────────────
 gradualismo
@@ -68,8 +71,6 @@ redistribucion
 acreedores
 
 # ── Verb / stem forms ─────────────────────────────────────────────────────────
-# Stems — regex will match all morphological variants:
-# "redistribuir" matches redistribuimos, redistribucion, redistribuido etc.
+# Stems — regex matches all morphological variants
 redistribuir
 subsidiar
-financiar

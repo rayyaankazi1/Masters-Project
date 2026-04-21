@@ -15,15 +15,21 @@ threshold — flow through automatically when you:
 This script does NOT import or re-run any LDA code.  It reads only
 data/interim/paragraphs_lda.csv and the dictionary files.
 
-Improvements (v2)
+Improvements (v3)
 ─────────────────
-1. Regex morphological matching — each word in a term gets a \\w* suffix so
-   "ajuste fiscal" also matches "ajustes fiscales", "ajuste fiscalmente" etc.
-2. Sentence-level scoring — text is split into sentences before matching;
-   infrastructure for future negation detection (e.g. "no hay ajuste fiscal").
-3. Zero-hit dead terms removed from both dictionaries.
-4. Verb / stem forms added (privatizar, desregular, recortar; redistribuir,
-   subsidiar, financiar).
+1. Regex morphological matching — each word in a term gets a \\w* suffix.
+2. Sentence-level scoring — infrastructure for future negation detection.
+3. Zero-hit dead terms pruned; verb/stem forms added.
+4. Dictionary expanded with literature-grounded terms:
+   - Hawkish: credibilidad/sostenibilidad/disciplina fiscal, presion
+     impositiva, actualizacion tarifaria, quita de subsidios, equilibrio
+     fiscal, agujero fiscal, austeridad, regla fiscal, ancla fiscal.
+   - Dovish: politica anticiclica, multiplicador fiscal, espacio fiscal,
+     bienestar social, derechos sociales, AF-specific terms.
+5. Dual LDA weighting: primary weight now uses
+   max(fiscal_topic_prob, monetary_topic_prob) so paragraphs in the
+   monetary/macro LDA topic (tasa, cambio, mercado, interes) are not
+   discarded.  Set MONETARY_TOPIC_ID to None to disable.
 
 Scoring formula
 ───────────────
@@ -35,7 +41,7 @@ For each paragraph p, split into sentences s_1 … s_k:
     net_tf_p     = hawkish_tf_p − dovish_tf_p
 
 Aggregated to speech level using two weighting schemes:
-    Primary   — weight_p = fiscal_topic_prob_p × n_tokens_p
+    Primary   — weight_p = max(fiscal_prob, monetary_prob) × n_tokens_p
     Robustness — equal weight across all paragraphs in speech
 
 Reads
@@ -78,6 +84,13 @@ TABLES_DIR   = os.path.join(_ROOT, "outputs", "tables")
 # ── Config ────────────────────────────────────────────────────────────────────
 PRES_ORDER  = ["Macri", "AF", "Milei"]
 PRES_COLORS = {"Macri": "#2196F3", "AF": "#4CAF50", "Milei": "#FF5722"}
+
+# LDA topic IDs — read from paragraphs_lda.csv column names at runtime.
+# The fiscal topic column is always "fiscal_topic_prob".
+# MONETARY_TOPIC_ID: set to the LDA topic number whose top words are
+# monetary/macro (tasa, cambio, mercado, interes).  With k=10 this is
+# topic 8.  Set to None to disable the dual-weight and use only fiscal.
+MONETARY_TOPIC_ID = 8   # topic 8: dinero, precios, tasa, cambio, mercado
 
 # ── Text normalisation ────────────────────────────────────────────────────────
 _CLEAN_RE  = re.compile(r"[^a-z\s]")
@@ -215,19 +228,32 @@ def aggregate_to_speech(para_df: pd.DataFrame) -> pd.DataFrame:
     """
     Aggregate paragraph-level scores to speech level using two schemes:
 
-    Primary   — fiscal_topic_prob × n_tokens weighted average
+    Primary   — max(fiscal_topic_prob, monetary_topic_prob) × n_tokens
+                Captures both explicit fiscal language (Topic 4) and
+                monetary/macro paragraphs (Topic 8: tasa, cambio, mercado).
     Robustness — equal-weight average across all paragraphs
 
     The primary scheme gives more weight to paragraphs that are both
-    fiscal-relevant (high fiscal_topic_prob) and substantive (long).
+    macro-relevant and substantive (long).
     """
+    # Build combined LDA weight column
+    if MONETARY_TOPIC_ID is not None:
+        mon_col = f"topic_{MONETARY_TOPIC_ID}"
+        if mon_col in para_df.columns:
+            combined_prob = para_df[["fiscal_topic_prob", mon_col]].max(axis=1)
+        else:
+            combined_prob = para_df["fiscal_topic_prob"]
+    else:
+        combined_prob = para_df["fiscal_topic_prob"]
+
     records = []
 
     for speech_id, grp in para_df.groupby("speech_id"):
         meta = grp.iloc[0]
+        grp_prob = combined_prob.loc[grp.index]
 
-        # Weights: fiscal probability × paragraph length
-        weights_fiscal = grp["fiscal_topic_prob"] * grp["n_tokens"]
+        # Weights: combined LDA probability × paragraph length
+        weights_fiscal = grp_prob * grp["n_tokens"]
         w_sum = weights_fiscal.sum()
 
         if w_sum > 0:

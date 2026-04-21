@@ -3,6 +3,15 @@
 # Regex matching: each word gets \w* suffix so "ajuste fiscal" also matches
 # "ajustes fiscales", "ajuste fiscalmente" etc.
 # Last reviewed: 2026-04
+#
+# Literature basis: Alesina & Ardagna (2010), Guajardo et al. (2011),
+# Kopits & Symansky (1998) fiscal rules, Barro-Gordon credibility framework.
+#
+# REMOVED (zero-hit): actualizacion tarifaria, ajuste estructural,
+#   alivio impositivo, consolidacion presupuestaria, credibilidad fiscal,
+#   deficit es inflacion, eliminacion de subsidios, fin de los subsidios,
+#   quita de subsidios, reduccion de ministerios, reduccion de subsidios
+#   — these concepts appear in the corpus but not via these exact phrasings.
 
 # ── Core fiscal tightening ────────────────────────────────────────────────────
 deficit cero
@@ -11,6 +20,7 @@ superavit fiscal
 superavit financiero
 superavit primario
 equilibrio presupuestario
+equilibrio fiscal
 ajuste fiscal
 consolidacion fiscal
 reforma fiscal
@@ -20,12 +30,29 @@ baja del gasto
 presupuesto equilibrado
 meta fiscal
 responsabilidad fiscal
+disciplina fiscal
 orden fiscal
 equilibrio de las cuentas
 deficit primario
 reduccion del deficit
+bajar el deficit
 eliminacion del deficit
 gasto improductivo
+agujero fiscal
+
+# ── Credibility / rules-based framing ────────────────────────────────────────
+# Barro-Gordon (1983), Kopits & Symansky (1998), IMF fiscal rules literature
+sostenibilidad fiscal
+ancla fiscal
+regla fiscal
+solvencia fiscal
+
+# ── Tax reform / supply-side (Macri-era) ──────────────────────────────────────
+presion impositiva
+baja de impuestos
+reduccion de impuestos
+reforma tributaria
+reduccion tributaria
 
 # ── Milei-era specific ────────────────────────────────────────────────────────
 motosierra
@@ -38,15 +65,13 @@ emision monetaria cero
 shock fiscal
 orgia de gasto
 impuesto inflacionario
-reduccion de ministerios
 viva la libertad
-deficit es inflacion
+austeridad
 
 # ── Monetary tightening ───────────────────────────────────────────────────────
 base monetaria
 independencia del banco central
 cero emision
-reduccion de subsidios
 
 # ── Structural reform / liberalisation ───────────────────────────────────────
 desregulacion
@@ -58,10 +83,9 @@ libre comercio
 reduccion del estado
 reforma del estado
 shock de oferta
-ajuste estructural
 
 # ── Verb / stem forms ─────────────────────────────────────────────────────────
-# These are stems — regex will match all morphological variants:
+# Stems — regex matches all morphological variants:
 # "privatizar" matches privatizamos, privatizacion, privatizado etc.
 privatizar
 desregular
