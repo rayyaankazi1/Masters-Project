@@ -32,5 +32,4 @@ data/processed/
 .Rproj.user/
 renv/library/
 
-# Tables (generated)
-outputs/tables/
+# (outputs/tables is tracked — summary tables are thesis artefacts)

@@ -69,7 +69,7 @@ FIGURES_DIR   = os.path.join(_ROOT, "outputs", "figures")
 OUTPUTS_DIR   = os.path.join(_ROOT, "outputs")
 
 # ── Config ────────────────────────────────────────────────────────────────────
-NUM_TOPICS_GRID = [5, 8, 10, 12, 15, 20]   # k values to search
+NUM_TOPICS_GRID = [10, 12, 15, 20]      # k=5 excluded — too coarse; k=8 excluded — k=10 dominates
 COHERENCE_METRIC = "c_v"                    # c_v is standard for topic quality
 PASSES          = 20                        # LDA training passes
 RANDOM_STATE    = 42
@@ -121,6 +121,19 @@ STOPWORDS_ES = {
     "entonces","bueno","realmente","tan","aca","alla","claro","vez","veces",
     "creo","parece","manera","parte","forma","punto","lugar","momento",
     "cosa","cosas","tipo","caso","casos",
+    # Pronouns / demonstratives that slipped through the length filter
+    "eso","esto","esos","estos","esa","esas","ese","esos",
+    "uno","una","unos","unas","usted","ustedes","estan","esto",
+    "voy","vos","van","ver","vez","sea","mil","asi","ahi",
+    "sino","pues","bien","aqui","alli","alla","aca","tan",
+    "fue","era","han","hay","les","sus","son","ser",
+    "aun","mas","nos","por","que","con","del","los","las",
+    "esa","ese","eso","esos","esas","uno","unos",
+    # Remaining filler caught in fiscal topic top words
+    "ademas","tanto","cual","ahora","teniamos","ello","aquello",
+    "aquel","cuyo","cuya","cuales","ambos","segun","tras","ante",
+    "pro","via","vez","hoy","ayer","tras","luego","sino","recien",
+    "pues","vale","claro","obvio","igual","igual","incluso","tampoco",
     # Argentina-specific noise
     "argentina","argentino","argentinos","argentinas","pais","paises",
     "nacion","republica","gobierno","presidente","presidenta",
@@ -449,19 +462,46 @@ def run(fiscal_topic_id: Optional[int] = FISCAL_TOPIC_ID):
     plot_wordclouds(para_df)
 
     # ── 10. Summary ───────────────────────────────────────────────────────────
-    print("\n=== LDA SUMMARY ===")
-    print(f"Best k            : {best_k}")
-    print(f"Fiscal topic id   : {fiscal_topic_id}")
-    print(f"Fiscal top words  : {[w for w, _ in lda.show_topic(fiscal_topic_id, topn=10)]}")
-    print(f"Fiscal paragraphs : {para_df['is_fiscal'].sum():,}")
-    print("\nFiscal paragraph share by president:")
-    print(
+    fiscal_share = (
         para_df[para_df["president"].isin(PRES_ORDER)]
         .groupby("president")["is_fiscal"]
         .agg(["sum", "count", "mean"])
         .rename(columns={"sum": "fiscal", "count": "total", "mean": "share"})
-        .to_string()
     )
+
+    summary_lines = [
+        "=== LDA SUMMARY ===",
+        f"Best k            : {best_k}",
+        f"Fiscal topic id   : {fiscal_topic_id}",
+        f"Fiscal top words  : {[w for w, _ in lda.show_topic(fiscal_topic_id, topn=10)]}",
+        f"Fiscal paragraphs : {para_df['is_fiscal'].sum():,} / {len(para_df):,} "
+        f"({para_df['is_fiscal'].mean()*100:.1f}%)",
+        f"Coherence metric  : {COHERENCE_METRIC}",
+        f"Fiscal threshold  : {FISCAL_MIN_PROB}",
+        "",
+        "Fiscal paragraph share by president:",
+        fiscal_share.to_string(),
+        "",
+        "All topic top words:",
+    ]
+    for i in range(best_k):
+        top = [w for w, _ in lda.show_topic(i, topn=10)]
+        tag = " ← FISCAL" if i == fiscal_topic_id else ""
+        summary_lines.append(f"  Topic {i:2d}{tag}: {top}")
+
+    summary_text = "\n".join(summary_lines)
+    print("\n" + summary_text)
+
+    # Save to outputs/tables/
+    tables_dir = os.path.join(_ROOT, "outputs", "tables")
+    os.makedirs(tables_dir, exist_ok=True)
+    summary_path = os.path.join(tables_dir, "lda_summary.txt")
+    with open(summary_path, "w") as f:
+        f.write(summary_text)
+    print(f"\nSaved summary: {summary_path}")
+
+    fiscal_share.to_csv(os.path.join(tables_dir, "lda_fiscal_share.csv"))
+    print(f"Saved fiscal share table: {tables_dir}/lda_fiscal_share.csv")
 
     return lda, para_df
 

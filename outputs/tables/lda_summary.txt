@@ -1,0 +1,26 @@
+=== LDA SUMMARY ===
+Best k            : 10
+Fiscal topic id   : 4
+Fiscal top words  : ['inflacion', 'millones', 'dolares', 'deuda', 'fiscal', 'central', 'impuestos', 'banco', 'hecho', 'fondo']
+Fiscal paragraphs : 1,972 / 16,197 (12.2%)
+Coherence metric  : c_v
+Fiscal threshold  : 0.25
+
+Fiscal paragraph share by president:
+           fiscal  total     share
+president                         
+AF            278   6264  0.044381
+Macri         152   5247  0.028969
+Milei        1542   4686  0.329065
+
+All topic top words:
+  Topic  0: ['estado', 'libertad', 'derechos', 'justicia', 'derecho', 'politica', 'fuerzas', 'vida', 'ley', 'ideas']
+  Topic  1: ['buenos', 'aires', 'ciudad', 'verdad', 'pandemia', 'tiempo', 'salud', 'problema', 'casa', 'estaba']
+  Topic  2: ['trabajo', 'empresas', 'crecimiento', 'energia', 'produccion', 'empleo', 'economia', 'sector', 'generar', 'industria']
+  Topic  3: ['desarrollo', 'tecnologia', 'informacion', 'rutas', 'educacion', 'recursos', 'estado', 'ciencia', 'desarrollar', 'valor']
+  Topic  4 ← FISCAL: ['inflacion', 'millones', 'dolares', 'deuda', 'fiscal', 'central', 'impuestos', 'banco', 'hecho', 'fondo']
+  Topic  5: ['estamos', 'queremos', 'juntos', 'camino', 'importante', 'tiempo', 'haciendo', 'trabajar', 'somos', 'podemos']
+  Topic  6: ['democracia', 'nestor', 'cristina', 'guerra', 'politica', 'queridos', 'dificiles', 'comunidades', 'atender', 'eleccion']
+  Topic  7: ['vida', 'trabajo', 'estoy', 'gobernador', 'verdad', 'alegria', 'mejor', 'norte', 'obras', 'importante']
+  Topic  8: ['dinero', 'problema', 'precios', 'demanda', 'interes', 'tasa', 'cambio', 'economia', 'mercado', 'cantidad']
+  Topic  9: ['brasil', 'puente', 'buenas', 'naciones', 'estados', 'primer', 'tardes', 'periodista', 'respecto', 'gabinete']
