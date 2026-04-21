@@ -1,0 +1,72 @@
+# Hawkish fiscal terms — Argentine presidential speeches
+# One term per line (lowercase, no accents — must match normalised text)
+# Multi-word phrases are matched as substrings in normalised paragraph text
+# Last reviewed: 2026-04
+# Note: extend after LDA and LLM validation runs
+
+# ── Core fiscal tightening ────────────────────────────────────────────────────
+deficit cero
+superavit fiscal
+superavit financiero
+equilibrio fiscal
+equilibrio presupuestario
+ajuste fiscal
+consolidacion fiscal
+saneamiento fiscal
+reforma fiscal
+reduccion del gasto
+recorte presupuestario
+recorte del gasto
+presupuesto equilibrado
+meta fiscal
+
+# ── Milei-era specific ────────────────────────────────────────────────────────
+motosierra
+licuadora
+no hay plata
+la casta
+casta politica
+emision cero
+emision monetaria cero
+shock de desregulacion
+shock fiscal
+deficit heredado
+herencia maldita
+desastre fiscal
+caos fiscal
+orgia de gasto
+estado elefantico
+
+# ── Monetary tightening ───────────────────────────────────────────────────────
+base monetaria
+independencia del banco central
+fin de la emision
+cero emision
+desindexacion
+eliminacion de subsidios
+quita de subsidios
+reduccion de subsidios
+
+# ── Structural reform / liberalisation ───────────────────────────────────────
+desregulacion
+privatizacion
+apertura economica
+libre mercado
+economia libre
+libre comercio
+eliminacion de ministerios
+reduccion del estado
+achicamiento del estado
+estado minimo
+reforma del estado
+shock de oferta
+
+# ── Macri-era specific ────────────────────────────────────────────────────────
+gradual pero firme
+responsabilidad fiscal
+orden fiscal
+equilibrio de las cuentas
+cuentas equilibradas
+deficit primario
+reduccion del deficit
+baja del gasto

@@ -1,0 +1,49 @@
+=== DICTIONARY SCORING SUMMARY ===
+Hawkish terms : 57
+Dovish terms  : 58
+
+Paragraphs with hits:
+  Any hit   : 1,586 / 16,197 (9.8%)
+  Hawkish   : 879
+  Dovish    : 790
+
+Speech-level net_tf_weighted by president:
+               mean       std       min       50%       max
+president                                                  
+Macri     -0.000168  0.002807 -0.022989  0.000000  0.023870
+AF        -0.002097  0.005882 -0.069767  0.000000  0.028193
+Milei      0.004818  0.005487 -0.007337  0.003879  0.032172
+
+Top 15 hawkish terms by total hits:
+    208  equilibrio fiscal
+    181  la casta
+    156  deficit cero
+    128  base monetaria
+    116  motosierra
+    113  ajuste fiscal
+    104  desregulacion
+     73  superavit fiscal
+     63  casta politica
+     55  libre comercio
+     42  emision cero
+     38  licuadora
+     33  libre mercado
+     30  superavit financiero
+     23  no hay plata
+
+Top 15 dovish terms by total hits:
+    309  obra publica
+    193  justicia social
+    150  obras publicas
+     95  estado presente
+     60  salario real
+     51  acuerdo con el fondo
+     32  industria nacional
+     28  paritarias
+     27  mercado interno
+     26  recuperacion economica
+     21  intervencion del estado
+     21  gradualismo
+     19  inclusion social
+     17  trabajo digno
+     15  inversion publica

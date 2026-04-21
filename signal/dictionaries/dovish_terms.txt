@@ -1,0 +1,71 @@
+# Dovish fiscal terms — Argentine presidential speeches
+# One term per line (lowercase, no accents — must match normalised text)
+# Multi-word phrases are matched as substrings in normalised paragraph text
+# Last reviewed: 2026-04
+# Note: extend after LDA and LLM validation runs
+
+# ── Expansionary fiscal stance ────────────────────────────────────────────────
+inversion publica
+expansion fiscal
+estimulo fiscal
+politica expansiva
+politica fiscal expansiva
+gasto publico productivo
+aumento del gasto
+incremento del gasto
+impulso fiscal
+obra publica
+obras publicas
+financiamiento del deficit
+deficit financiado
+deficit sostenible
+
+# ── Social spending / redistribution ─────────────────────────────────────────
+proteccion social
+justicia social
+inclusion social
+gasto social
+transferencias sociales
+subsidios sociales
+politicas redistributivas
+redistribucion del ingreso
+inversion social
+asistencia social
+estado presente
+estado activo
+rol del estado
+intervencion del estado
+regulacion estatal
+planificacion economica
+
+# ── AF-era specific ───────────────────────────────────────────────────────────
+acuerdo con el fondo
+restructuracion de la deuda
+quita de deuda
+alivio de la deuda
+deuda sustentable
+deuda sostenible
+crecimiento con inclusion
+recuperacion con equidad
+reactivacion economica
+recuperacion economica
+produccion nacional
+industria nacional
+mercado interno
+sustitusion de importaciones
+empleo digno
+trabajo digno
+salario real
+paritarias
+
+# ── Macri-era dovish framing ──────────────────────────────────────────────────
+gradualismo
+politica gradualista
+ajuste gradual
+gradual y sostenido
+financiamiento externo
+apoyo del fondo
+sectores vulnerables
+proteger a los vulnerables
+red de proteccion
+amortiguacion social
