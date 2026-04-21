@@ -82,3 +82,17 @@ Top 15 dovish terms (accepted hits):
 ZERO-HIT HAWKISH (0):
 
 ZERO-HIT DOVISH (0):
+
+── MONTHLY SIGNAL STATS (Method C — FW-sum weighted) ────────────────
+President  N months       Mean        Std        Min        Max
+----------------------------------------------------------
+Macri           49    0.00051    0.00164   -0.00184    0.00788
+AF              49   -0.00151    0.00218   -0.00963    0.00214
+Milei           29    0.00635    0.00379   -0.00064    0.01418
+
+Z-score column (BVAR input): net_tf_fwsum_z
+President     Mean-z      Std-z
+--------------------------------
+Macri       -0.1430     0.4205
+AF          -0.6606     0.5604
+Milei        1.3579     0.9743

@@ -62,6 +62,7 @@ Writes
 ──────
     data/interim/paragraphs_scored.csv    paragraph-level with hit counts
     data/interim/speeches_scored.csv      speech-level aggregated scores
+    data/interim/monthly_signal.csv       monthly BVAR-ready signal (Method C)
     outputs/figures/scoring_overview.png  summary charts
     outputs/tables/scoring_summary.txt    printable summary
 """
@@ -357,6 +358,84 @@ def aggregate_to_speech(para_df: pd.DataFrame) -> pd.DataFrame:
     return speech_df
 
 
+# ── Monthly aggregation (BVAR input) ─────────────────────────────────────────
+
+def aggregate_to_monthly(speech_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aggregate speech-level scores to a monthly series suitable for BVAR.
+
+    Method C — fiscal-weight-sum weighted mean:
+        monthly_score = Σ(net_tf_weighted × fiscal_weight_sum) / Σ(fiscal_weight_sum)
+
+    This is a soft fiscal-content filter: non-fiscal speeches (tiny
+    fiscal_weight_sum) contribute near-zero weight without being hard-excluded.
+    Avoids the small-sample noise of a hard n_fiscal_paragraphs >= 1 filter
+    while still recovering ~60% more variance than the naive equal-weight mean.
+
+    Method A (equal-weight mean) is retained as a robustness check column.
+
+    Both series are z-score normalised over the full cross-president sample
+    so that Milei's consistently higher level is preserved in the z-scores.
+    Use net_tf_fwsum_z as the primary BVAR input.
+
+    Parameters
+    ----------
+    speech_df : output of aggregate_to_speech(), all presidents.
+
+    Returns
+    -------
+    pd.DataFrame with one row per (year_month, president), columns:
+        year_month, president, n_speeches, n_fiscal_speeches,
+        fiscal_weight_total,
+        net_tf_fwsum      — Method C raw score
+        net_tf_equal_month — Method A raw score (robustness)
+        hawkish_tf_fwsum, dovish_tf_fwsum  — components
+        net_tf_fwsum_z    — Method C z-score  ← BVAR input
+        net_tf_equal_z    — Method A z-score  (robustness)
+    """
+    core = speech_df[speech_df["president"].isin(PRES_ORDER)].copy()
+
+    records = []
+    for (ym, pres), grp in core.groupby(["year_month", "president"], observed=True):
+        w     = grp["fiscal_weight_sum"]
+        w_sum = w.sum()
+
+        if w_sum > 0:
+            net_c  = (grp["net_tf_weighted"]     * w).sum() / w_sum
+            h_c    = (grp["hawkish_tf_weighted"]  * w).sum() / w_sum
+            d_c    = (grp["dovish_tf_weighted"]   * w).sum() / w_sum
+        else:
+            net_c = h_c = d_c = np.nan
+
+        records.append({
+            "year_month":          ym,
+            "president":           pres,
+            "n_speeches":          len(grp),
+            "n_fiscal_speeches":   (grp["n_fiscal_paragraphs"] >= 1).sum(),
+            "fiscal_weight_total": w_sum,
+            "net_tf_fwsum":        net_c,
+            "hawkish_tf_fwsum":    h_c,
+            "dovish_tf_fwsum":     d_c,
+            "net_tf_equal_month":  grp["net_tf_weighted"].mean(),
+        })
+
+    monthly = pd.DataFrame(records)
+    monthly["ym_dt"] = pd.to_datetime(monthly["year_month"])
+    monthly.sort_values(["ym_dt", "president"], inplace=True, ignore_index=True)
+
+    # ── Z-score over full cross-president sample ──────────────────────────────
+    for raw_col, z_col in [
+        ("net_tf_fwsum",       "net_tf_fwsum_z"),
+        ("net_tf_equal_month", "net_tf_equal_z"),
+    ]:
+        mu  = monthly[raw_col].mean()
+        sig = monthly[raw_col].std()
+        monthly[z_col] = (monthly[raw_col] - mu) / sig if sig > 0 else 0.0
+
+    monthly.drop(columns=["ym_dt"], inplace=True)
+    return monthly
+
+
 # ── Plots ─────────────────────────────────────────────────────────────────────
 
 def plot_scoring_overview(speech_df: pd.DataFrame):
@@ -371,18 +450,27 @@ def plot_scoring_overview(speech_df: pd.DataFrame):
     )
     monthly["ym_dt"] = pd.to_datetime(monthly["year_month"])
 
+    # ── Method C (FW-sum weighted) ── primary BVAR input ─────────────────────
+    monthly_c = aggregate_to_monthly(speech_df)
+    monthly_c["ym_dt"] = pd.to_datetime(monthly_c["year_month"])
+
     ax = axes[0]
     for pres in PRES_ORDER:
-        sub = monthly[monthly["president"] == pres].sort_values("ym_dt")
-        ax.plot(sub["ym_dt"], sub["net_tf_weighted"],
-                label=pres, color=PRES_COLORS[pres], linewidth=1.5)
+        sub_a = monthly[monthly["president"] == pres].sort_values("ym_dt")
+        sub_c = monthly_c[monthly_c["president"] == pres].sort_values("ym_dt")
+        ax.plot(sub_a["ym_dt"], sub_a["net_tf_weighted"],
+                color=PRES_COLORS[pres], linewidth=1.0, linestyle="--",
+                alpha=0.4, label=f"{pres} (equal-wt)")
+        ax.plot(sub_c["ym_dt"], sub_c["net_tf_fwsum"],
+                color=PRES_COLORS[pres], linewidth=1.8, linestyle="-",
+                label=f"{pres} (FW-sum, BVAR)")
     ax.axhline(0, color="black", linewidth=0.8, linestyle="--", alpha=0.5)
     for date in ["2015-12-10", "2019-12-10", "2023-12-10"]:
         ax.axvline(pd.Timestamp(date), color="grey", linewidth=1,
                    linestyle="--", alpha=0.5)
-    ax.set_title("Monthly mean hawkishness score (net TF, fiscal-probability weighted, negation-aware)")
+    ax.set_title("Monthly hawkishness: Method A equal-weight (dashed) vs Method C FW-sum weighted (solid, BVAR input)")
     ax.set_ylabel("Net TF score")
-    ax.legend()
+    ax.legend(fontsize=7, ncol=2)
 
     ax = axes[1]
     data = [core[core["president"] == p]["net_tf_weighted"].dropna().values
@@ -617,6 +705,41 @@ def run():
     for t in zero_d:
         summary_lines.append(f"  {t}")
 
+    # ── 8. Monthly aggregation (Method C — BVAR input) ───────────────────────
+    print("\nAggregating to monthly (Method C — FW-sum weighted)...")
+    monthly_df = aggregate_to_monthly(speech_df)
+
+    monthly_out = os.path.join(INTERIM_DIR, "monthly_signal.csv")
+    monthly_df.to_csv(monthly_out, index=False)
+    print(f"Saved: {monthly_out}")
+    print(f"  {len(monthly_df)} month-president rows")
+
+    monthly_stats_lines = [
+        "",
+        "── MONTHLY SIGNAL STATS (Method C — FW-sum weighted) ────────────────",
+        f"{'President':<8} {'N months':>9} {'Mean':>10} {'Std':>10} {'Min':>10} {'Max':>10}",
+        "-" * 58,
+    ]
+    for pres in PRES_ORDER:
+        sub = monthly_df[monthly_df["president"] == pres]["net_tf_fwsum"].dropna()
+        monthly_stats_lines.append(
+            f"{pres:<8} {len(sub):>9d} {sub.mean():>10.5f} {sub.std():>10.5f} "
+            f"{sub.min():>10.5f} {sub.max():>10.5f}"
+        )
+    monthly_stats_lines += [
+        "",
+        "Z-score column (BVAR input): net_tf_fwsum_z",
+        f"{'President':<8} {'Mean-z':>10} {'Std-z':>10}",
+        "-" * 32,
+    ]
+    for pres in PRES_ORDER:
+        sub = monthly_df[monthly_df["president"] == pres]["net_tf_fwsum_z"].dropna()
+        monthly_stats_lines.append(
+            f"{pres:<8} {sub.mean():>10.4f} {sub.std():>10.4f}"
+        )
+
+    summary_lines += monthly_stats_lines
+
     summary_text = "\n".join(summary_lines)
     print("\n" + summary_text)
 
@@ -625,8 +748,8 @@ def run():
         f.write(summary_text)
     print(f"\nSaved: {summary_path}")
 
-    return para_scored, speech_df
+    return para_scored, speech_df, monthly_df
 
 
 if __name__ == "__main__":
-    para_scored, speech_df = run()
+    para_scored, speech_df, monthly_df = run()
