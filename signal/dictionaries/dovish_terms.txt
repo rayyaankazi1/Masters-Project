@@ -10,6 +10,16 @@
 # REMOVED (zero-hit): amortiguacion social, espacio fiscal,
 #   multiplicador fiscal, politica anticiclica, politica contraciclica
 #   — academic terms that do not appear in presidential speech registers.
+#
+# REMOVED (critical-usage false positives): justicia social, redistribucion,
+#   redistribuir, intervencion del estado, gradualismo — Milei uses all of
+#   these extensively but to CRITICISE or mock the concept (libertarian
+#   lectures against social justice, Hoppe quotes against redistribution,
+#   attacks on gradualism). Counting them inflates Milei's dovish score.
+#   acreedores also removed — Milei uses it in a hawkish credibility context
+#   (paying back creditors), not dovish debt restructuring.
+#   acuerdo con el fondo removed — for Milei this signals IMF-endorsed
+#   fiscal discipline (hawkish), not accommodation.
 
 # ── Expansionary fiscal stance ────────────────────────────────────────────────
 inversion publica
@@ -22,9 +32,8 @@ mayor gasto publico
 estimulo economico
 
 # ── Social spending / redistribution ─────────────────────────────────────────
-# Dornbusch & Edwards (1991): redistributive populist cycle
+# Terms kept here are those where critical/ironic usage by Milei is rare.
 proteccion social
-justicia social
 inclusion social
 gasto social
 redistribucion del ingreso
@@ -34,12 +43,10 @@ bienestar social
 estado presente
 estado activo
 rol del estado
-intervencion del estado
 seguridad social
 derechos sociales
 
 # ── AF-era specific ───────────────────────────────────────────────────────────
-acuerdo con el fondo
 reestructuracion de la deuda
 deuda sostenible
 deuda externa
@@ -60,17 +67,11 @@ tarjeta alimentar
 programa de recuperacion
 
 # ── Macri-era dovish framing ──────────────────────────────────────────────────
-gradualismo
 financiamiento externo
 apoyo del fondo
 sectores vulnerables
 proteger a los vulnerables
 
-# ── Unambiguous single-word / stem terms ──────────────────────────────────────
-redistribucion
-acreedores
-
 # ── Verb / stem forms ─────────────────────────────────────────────────────────
 # Stems — regex matches all morphological variants
-redistribuir
 subsidiar
