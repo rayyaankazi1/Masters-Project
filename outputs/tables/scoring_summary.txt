@@ -1,27 +1,28 @@
 === DICTIONARY SCORING SUMMARY (v4 — negation-aware) ===
-Hawkish terms : 61
+Hawkish terms : 56
 Dovish terms  : 43
 
 Paragraphs with hits:
-  Any accepted hit : 1,552 / 16,197 (9.6%)
-  Hawkish accepted : 1,084
-  Dovish  accepted : 532
-  Hawkish negated  : 57
-  Dovish  negated  : 17
+  Any accepted hit : 1,342 / 16,197 (8.3%)
+  Hawkish accepted : 853
+  Dovish  accepted : 548
+  Hawkish negated  : 41
+  Dovish  negated  : 24
 
 Speech-level net_tf_weighted by president:
                mean       std       min       50%       max
 president                                                  
-Macri      0.000268  0.003226 -0.022989  0.000000  0.047575
-AF        -0.000904  0.003865 -0.022179  0.000000  0.038963
-Milei      0.005666  0.005894 -0.005942  0.004766  0.037993
+Macri      0.000212  0.003325 -0.022989  0.000000  0.047575
+AF        -0.000949  0.003865 -0.022179  0.000000  0.038963
+Milei      0.004096  0.005377 -0.005942  0.002628  0.037993
 
 ── NEGATION SUPPRESSION REPORT ──────────────────────────────────
-  Macri   hawkish:   69 accepted,    1 negated (1.4% suppressed)  |  dovish:   72 accepted,    1 negated (1.4% suppressed)
-  AF      hawkish:   73 accepted,    0 negated (0.0% suppressed)  |  dovish:  372 accepted,    7 negated (1.8% suppressed)
-  Milei   hawkish: 1680 accepted,   56 negated (3.2% suppressed)  |  dovish:  211 accepted,    9 negated (4.1% suppressed)
+  Macri   hawkish:   69 accepted,    1 negated (1.4% suppressed)  |  dovish:   82 accepted,    1 negated (1.2% suppressed)
+  AF      hawkish:   58 accepted,    0 negated (0.0% suppressed)  |  dovish:  376 accepted,    9 negated (2.3% suppressed)
+  Milei   hawkish: 1211 accepted,   40 negated (3.2% suppressed)  |  dovish:  219 accepted,   14 negated (6.0% suppressed)
 
 Top negated dovish terms (all presidents):
+      7  subsidios
       5  estado presente
       2  industria nacional
       2  derechos sociales
@@ -33,40 +34,41 @@ Top negated dovish terms (all presidents):
       1  mercado interno
 
 Top negated hawkish terms (all presidents):
-      8  la casta
       6  impuesto inflacionario
       6  equilibrio fiscal
-      4  motosierra
       3  base monetaria
       3  no hay plata
       3  deficit cero
       3  reduccion de impuestos
       2  ajuste fiscal
       2  recortar
+      2  baja de impuestos
+      2  superavit financiero
 
 ── TOP ACCEPTED TERMS ────────────────────────────────────────────
 Top 15 hawkish terms (accepted hits):
     202  equilibrio fiscal
     174  base monetaria
-    174  la casta
     153  deficit cero
     113  ajuste fiscal
-    112  motosierra
     104  desregulacion
-     99  viva la libertad
      72  superavit fiscal
-     63  casta politica
      55  libre comercio
      46  impuesto inflacionario
      41  emision cero
-     36  licuadora
      32  libre mercado
+     28  superavit financiero
+     27  baja de impuestos
+     25  desregular
+     21  no hay plata
+     19  reforma tributaria
 
 Top 15 dovish terms (accepted hits):
     125  salario real
      90  estado presente
      61  tarjeta alimentar
      43  deuda externa
+     33  subsidios
      30  industria nacional
      28  mercado interno
      28  paritarias
@@ -76,7 +78,6 @@ Top 15 dovish terms (accepted hits):
      15  inversion publica
      14  asistencia social
      14  produccion nacional
-     11  subsidiar
      10  rol del estado
 
 ZERO-HIT HAWKISH (0):
@@ -86,13 +87,13 @@ ZERO-HIT DOVISH (0):
 ── MONTHLY SIGNAL STATS (Method C — FW-sum weighted) ────────────────
 President  N months       Mean        Std        Min        Max
 ----------------------------------------------------------
-Macri           49    0.00051    0.00164   -0.00184    0.00788
-AF              49   -0.00151    0.00218   -0.00963    0.00214
-Milei           29    0.00635    0.00379   -0.00064    0.01418
+Macri           49    0.00031    0.00199   -0.00629    0.00788
+AF              49   -0.00159    0.00220   -0.00963    0.00191
+Milei           29    0.00494    0.00335   -0.00157    0.01247
 
 Z-score column (BVAR input): net_tf_fwsum_z
 President     Mean-z      Std-z
 --------------------------------
-Macri       -0.1430     0.4205
-AF          -0.6606     0.5604
-Milei        1.3579     0.9743
+Macri       -0.0929     0.5713
+AF          -0.6407     0.6336
+Milei        1.2394     0.9632

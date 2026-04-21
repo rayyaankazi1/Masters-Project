@@ -72,6 +72,7 @@ apoyo del fondo
 sectores vulnerables
 proteger a los vulnerables
 
-# ── Verb / stem forms ─────────────────────────────────────────────────────────
-# Stems — regex matches all morphological variants
-subsidiar
+# ── Noun forms ────────────────────────────────────────────────────────────────
+# Using noun "subsidios" to avoid false-positive match on "subsidiaria/subsidiariedad"
+# (subsidiary companies / subsidiarity principle) which share the subsidiar* stem.
+subsidios

@@ -12,6 +12,12 @@
 #   deficit es inflacion, eliminacion de subsidios, fin de los subsidios,
 #   quita de subsidios, reduccion de ministerios, reduccion de subsidios
 #   — these concepts appear in the corpus but not via these exact phrasings.
+#
+# REMOVED (Milei-specific political branding — not cross-president vocabulary):
+#   motosierra, licuadora — fiscal metaphors exclusive to Milei's register;
+#     including them creates circularity (term is hawkish because Milei uses it).
+#   la casta, casta politica, viva la libertad — pure political slogans with
+#     no fiscal semantic content (93–100% Milei-specific, 0 fiscal meaning).
 
 # ── Core fiscal tightening ────────────────────────────────────────────────────
 deficit cero
@@ -55,17 +61,14 @@ reforma tributaria
 reduccion tributaria
 
 # ── Milei-era specific ────────────────────────────────────────────────────────
-motosierra
-licuadora
+# Retained: terms expressing a real fiscal/monetary policy commitment
+# that could in principle appear in any president's rhetoric.
 no hay plata
-la casta
-casta politica
 emision cero
 emision monetaria cero
 shock fiscal
 orgia de gasto
 impuesto inflacionario
-viva la libertad
 austeridad
 
 # ── Monetary tightening ───────────────────────────────────────────────────────
