@@ -15,9 +15,7 @@ build/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Data — raw speeches and processed files are not redistributed
-# (retrieval scripts are included instead — see data/README.md)
-data/raw/
+# Processed/interim data (generated artefacts, reproducible from raw)
 data/interim/
 data/processed/
 
