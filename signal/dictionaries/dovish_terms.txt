@@ -23,6 +23,7 @@
 
 # ── Expansionary fiscal stance ────────────────────────────────────────────────
 inversion publica
+obra publica
 politica fiscal expansiva
 aumento del gasto
 incremento del gasto

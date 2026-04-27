@@ -13,7 +13,7 @@ changes to the LDA pipeline flow through automatically when you:
 
 This script does NOT import or re-run any LDA code.
 
-Improvements (v4)
+Improvements (v5)
 ─────────────────
 1. Regex morphological matching — each word in a term gets a \\w* suffix.
 2. Sentence-level scoring — text split into sentences before matching.
@@ -37,6 +37,22 @@ Improvements (v4)
    etc. constantly to criticise or mock them (libertarian lectures,
    Hoppe quotes).  Without negation detection, ~400 false dovish hits
    inflate his dovish TF score.
+
+7. Direction-aware elimin* (v5 — negation audit 2026-04):
+   The elimin* Tier-1 pattern is now gated by match direction.
+   It suppresses dovish hits correctly ("eliminar la redistribución") but
+   no longer suppresses hawkish hits ("para eliminar la inflación, mantener
+   el superávit fiscal"; "la eliminación del impuesto inflacionario").
+   Corpus audit: 11 false hawkish suppressions corrected (all Milei).
+   is_negated() now takes an optional direction="hawkish"|"dovish" parameter.
+
+   Documented residual false suppressions (~11 hits, <0.7% of gross):
+   • "no solo X" (additive) — Tier-2 fires on "no" in "no solo" (4 hits)
+   • "no hay plata" self-negation — term starts with "no", 2nd occurrence
+     in same sentence sees "no" in 3-word window (3 hits, all Milei)
+   • Historical "nunca viste/tuvimos X" — Milei contrast-framing his own
+     achievement; "nunca" modifies verb, not the fiscal concept (4 hits)
+   These are known limitations, not coded around (signal impact < 1%).
 
 Scoring formula
 ───────────────
@@ -130,10 +146,24 @@ _NEG_WEAK = [re.compile(p) for p in [
 ]]
 
 
-def is_negated(sentence: str, match_start: int) -> bool:
+def is_negated(sentence: str, match_start: int, direction: str = "both") -> bool:
     """
     Return True if the match at `match_start` in `sentence` is preceded by
     negation or critical-usage signals within the configured word windows.
+
+    Parameters
+    ----------
+    sentence    : normalised sentence text
+    match_start : character start position of the regex match
+    direction   : "hawkish" | "dovish" | "both"
+                  Controls which Tier-1 patterns are applied.
+                  The `elimin*` pattern is direction-gated: it is designed to
+                  suppress dovish terms used in a "we must eliminate X" context
+                  (e.g. Milei — "eliminar la redistribución"), but should NOT
+                  suppress hawkish terms in the same construction (e.g. Milei —
+                  "para eliminar la inflación, mantener el superávit fiscal",
+                  "la eliminación del impuesto inflacionario").
+                  When direction == "hawkish", elimin* is skipped.
 
     Uses two tiers:
       - Strong patterns checked over the last NEG_WINDOW_STRONG words.
@@ -145,8 +175,12 @@ def is_negated(sentence: str, match_start: int) -> bool:
 
     # Tier 1: strong critical-framing signals
     window_strong = " ".join(pre_words[-NEG_WINDOW_STRONG:])
-    if any(p.search(window_strong) for p in _NEG_STRONG):
-        return True
+    for pat in _NEG_STRONG:
+        # Skip elimin* for hawkish terms — see docstring.
+        if pat.pattern == r"\belimin\w*\b" and direction == "hawkish":
+            continue
+        if pat.search(window_strong):
+            return True
 
     # Tier 2: bare negation — tight window to reduce false positives
     window_weak = " ".join(pre_words[-NEG_WINDOW_WEAK:])
@@ -242,14 +276,14 @@ def score_paragraph(
     for sent in sentences:
         for term, pat in hawkish_patterns:
             for m in pat.finditer(sent):
-                if is_negated(sent, m.start()):
+                if is_negated(sent, m.start(), direction="hawkish"):
                     h_neg_counts[term] = h_neg_counts.get(term, 0) + 1
                 else:
                     h_term_counts[term] = h_term_counts.get(term, 0) + 1
 
         for term, pat in dovish_patterns:
             for m in pat.finditer(sent):
-                if is_negated(sent, m.start()):
+                if is_negated(sent, m.start(), direction="dovish"):
                     d_neg_counts[term] = d_neg_counts.get(term, 0) + 1
                 else:
                     d_term_counts[term] = d_term_counts.get(term, 0) + 1
@@ -603,7 +637,7 @@ def run():
         for term, pat in hawkish_patterns:
             for sent in sents:
                 for m in pat.finditer(sent):
-                    if is_negated(sent, m.start()):
+                    if is_negated(sent, m.start(), direction="hawkish"):
                         neg_h[term] = neg_h.get(term, 0) + 1
                         if pres in pres_neg:
                             pres_neg[pres]["h_neg"] += 1
@@ -615,7 +649,7 @@ def run():
         for term, pat in dovish_patterns:
             for sent in sents:
                 for m in pat.finditer(sent):
-                    if is_negated(sent, m.start()):
+                    if is_negated(sent, m.start(), direction="dovish"):
                         neg_d[term] = neg_d.get(term, 0) + 1
                         if pres in pres_neg:
                             pres_neg[pres]["d_neg"] += 1

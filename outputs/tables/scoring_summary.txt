@@ -3,10 +3,10 @@ Hawkish terms : 61
 Dovish terms  : 45
 
 Paragraphs with hits:
-  Any accepted hit : 1,458 / 16,197 (9.0%)
-  Hawkish accepted : 937
+  Any accepted hit : 1,463 / 16,197 (9.0%)
+  Hawkish accepted : 943
   Dovish  accepted : 586
-  Hawkish negated  : 45
+  Hawkish negated  : 34
   Dovish  negated  : 26
 
 Speech-level net_tf_weighted by president:
@@ -14,12 +14,12 @@ Speech-level net_tf_weighted by president:
 president                                                  
 Macri      0.000446  0.004244 -0.022989  0.000000  0.047575
 AF        -0.001038  0.004179 -0.026129  0.000000  0.038963
-Milei      0.004325  0.005535 -0.005942  0.003072  0.037993
+Milei      0.004370  0.005550 -0.005942  0.003072  0.037993
 
 ── NEGATION SUPPRESSION REPORT ──────────────────────────────────
   Macri   hawkish:   99 accepted,    2 negated (2.0% suppressed)  |  dovish:  105 accepted,    3 negated (2.8% suppressed)
   AF      hawkish:   66 accepted,    0 negated (0.0% suppressed)  |  dovish:  413 accepted,    9 negated (2.1% suppressed)
-  Milei   hawkish: 1279 accepted,   43 negated (3.3% suppressed)  |  dovish:  232 accepted,   14 negated (5.7% suppressed)
+  Milei   hawkish: 1290 accepted,   32 negated (2.4% suppressed)  |  dovish:  232 accepted,   14 negated (5.7% suppressed)
 
 Top negated dovish terms (all presidents):
       7  subsidios
@@ -35,33 +35,33 @@ Top negated dovish terms (all presidents):
       1  mercado interno
 
 Top negated hawkish terms (all presidents):
-      6  impuesto inflacionario
       6  equilibrio fiscal
+      3  impuesto inflacionario
       3  base monetaria
       3  no hay plata
       3  deficit cero
-      3  reduccion de impuestos
       3  bajar la inflacion
-      2  ajuste fiscal
       2  recortar
-      2  baja de impuestos
+      2  superavit financiero
+      1  ajuste fiscal
+      1  desregular
 
 ── TOP ACCEPTED TERMS ────────────────────────────────────────────
 Top 15 hawkish terms (accepted hits):
     202  equilibrio fiscal
     174  base monetaria
     153  deficit cero
-    113  ajuste fiscal
+    114  ajuste fiscal
     104  desregulacion
-     72  superavit fiscal
+     73  superavit fiscal
      58  bajar la inflacion
      55  libre comercio
-     46  impuesto inflacionario
+     49  impuesto inflacionario
      41  emision cero
      34  sinceramiento
      32  libre mercado
+     29  baja de impuestos
      28  superavit financiero
-     27  baja de impuestos
      25  desregular
 
 Top 15 dovish terms (accepted hits):
@@ -91,11 +91,11 @@ President  N months       Mean        Std        Min        Max
 ----------------------------------------------------------
 Macri           49    0.00048    0.00216   -0.00629    0.00788
 AF              49   -0.00165    0.00242   -0.01193    0.00223
-Milei           29    0.00527    0.00355   -0.00157    0.01309
+Milei           29    0.00535    0.00359   -0.00157    0.01309
 
 Z-score column (BVAR input): net_tf_fwsum_z
 President     Mean-z      Std-z
 --------------------------------
-Macri       -0.0732     0.5807
-AF          -0.6476     0.6519
-Milei        1.2179     0.9559
+Macri       -0.0771     0.5761
+AF          -0.6470     0.6469
+Milei        1.2235     0.9592
