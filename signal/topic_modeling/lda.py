@@ -29,10 +29,11 @@ Writes
 
 Config
 ------
-  Adjust NUM_TOPICS_GRID, FISCAL_TOPIC_ID, and FISCAL_MIN_PROB below.
-  On first run, leave FISCAL_TOPIC_ID = None — the script auto-detects
-  the fiscal topic via seed-word overlap and prints its finding. Review
-  the coherence plot and topic-word chart, then hard-code the id if needed.
+  Adjust NUM_TOPICS_GRID, FISCAL_TOPIC_IDS, and FISCAL_MIN_PROB below.
+  On first run, leave FISCAL_TOPIC_IDS = [] — the script auto-detects
+  the fiscal topic via seed-word overlap and prints its finding.  Review
+  the coherence plot and topic-word chart, then hard-code the relevant
+  topic IDs (e.g. FISCAL_TOPIC_IDS = [4, 8]) for reproducibility.
 """
 
 import os
@@ -40,7 +41,7 @@ import re
 import pickle
 import unicodedata
 import warnings
-from typing import Optional
+from typing import Optional  # retained for other type hints if added later
 
 import numpy as np
 import pandas as pd
@@ -69,7 +70,7 @@ FIGURES_DIR   = os.path.join(_ROOT, "outputs", "figures")
 OUTPUTS_DIR   = os.path.join(_ROOT, "outputs")
 
 # ── Config ────────────────────────────────────────────────────────────────────
-NUM_TOPICS_GRID = [10, 12, 15, 20]      # k=5 excluded — too coarse; k=8 excluded — k=10 dominates
+NUM_TOPICS_GRID = list(range(8, 31))    # full sweep k=8–30; fine-grained coherence curve
 COHERENCE_METRIC = "c_v"                    # c_v is standard for topic quality
 PASSES          = 20                        # LDA training passes
 RANDOM_STATE    = 42
@@ -77,10 +78,23 @@ MIN_PARA_WORDS  = 20                        # discard very short paragraphs
 NO_BELOW        = 5                         # min document frequency
 NO_ABOVE        = 0.55                      # max document frequency (fraction)
 
-# After first run, inspect outputs and set this to the topic index
-# that corresponds to the fiscal/monetary policy topic.
-# Leave as None to use automatic seed-word detection.
-FISCAL_TOPIC_ID: Optional[int] = None
+# ── Fiscal topic IDs ──────────────────────────────────────────────────────────
+# List every topic whose top words clearly relate to fiscal or monetary policy.
+# fiscal_topic_prob in paragraphs_lda.csv = max(topic_i for i in FISCAL_TOPIC_IDS).
+#
+# If left empty the script prints all topic top-word tables and exits — inspect
+# those, then populate the list and re-run.  There is NO auto-detection.
+# Example (k=10 run): FISCAL_TOPIC_IDS = [4, 8]
+FISCAL_TOPIC_IDS: list[int] = []
+
+# ── Ideology topic IDs ────────────────────────────────────────────────────────
+# List topics that capture ideological framing (e.g. libertad, estado, derechos,
+# libre mercado) even when explicit fiscal vocabulary is absent.
+# ideology_topic_prob in paragraphs_lda.csv = max(topic_i for i in IDEOLOGY_TOPIC_IDS).
+# Downstream scoring applies a fractional weight (IDEOLOGY_WEIGHT in
+# tfidf_dictionary.py) so ideology paragraphs contribute at partial strength.
+# Example (k=10 run): IDEOLOGY_TOPIC_IDS = [0]
+IDEOLOGY_TOPIC_IDS: list[int] = []
 
 # Threshold for labelling a paragraph as "fiscal-relevant"
 FISCAL_MIN_PROB = 0.25
@@ -241,20 +255,23 @@ def grid_search_k(
     print(f"\n  Best k = {best_k} (coherence = {max(scores):.4f})")
     return best_k, scores
 
-# ── Fiscal topic detection ────────────────────────────────────────────────────
+# ── Topic inspection helper ───────────────────────────────────────────────────
 
-def detect_fiscal_topic(model: LdaModel, n_words: int = 30) -> int:
+def print_all_topics(model: LdaModel, n_words: int = 15) -> None:
     """
-    Returns the topic index with the highest overlap between its top-n words
-    and the FISCAL_SEEDS vocabulary. Used when FISCAL_TOPIC_ID is None.
+    Print every topic's top words to stdout so the researcher can decide
+    which IDs to assign to FISCAL_TOPIC_IDS and IDEOLOGY_TOPIC_IDS.
+    Called automatically when either list is empty after training.
     """
-    best_topic, best_overlap = 0, 0
-    for i in range(model.num_topics):
-        top_words = {w for w, _ in model.show_topic(i, topn=n_words)}
-        overlap = len(top_words & FISCAL_SEEDS)
-        if overlap > best_overlap:
-            best_overlap, best_topic = overlap, i
-    return best_topic
+    k = model.num_topics
+    print(f"\n{'─'*60}")
+    print(f"  ALL TOPICS (k={k}) — inspect and set FISCAL_TOPIC_IDS")
+    print(f"  and IDEOLOGY_TOPIC_IDS in the config, then re-run.")
+    print(f"{'─'*60}")
+    for i in range(k):
+        words = [w for w, _ in model.show_topic(i, topn=n_words)]
+        print(f"  Topic {i:2d}: {words}")
+    print(f"{'─'*60}\n")
 
 # ── Plots ─────────────────────────────────────────────────────────────────────
 
@@ -276,7 +293,7 @@ def plot_coherence(scores: list[float]):
     print(f"Saved: {path}")
 
 
-def plot_topic_words(model: LdaModel, fiscal_topic_id: int, n_words: int = 10):
+def plot_topic_words(model: LdaModel, fiscal_topic_id: Optional[int] = None, n_words: int = 10):
     k = model.num_topics
     cols = min(k, 4)
     rows = (k + cols - 1) // cols
@@ -285,9 +302,9 @@ def plot_topic_words(model: LdaModel, fiscal_topic_id: int, n_words: int = 10):
 
     for i in range(k):
         words, weights = zip(*model.show_topic(i, topn=n_words))
-        color = "#FF5722" if i == fiscal_topic_id else "steelblue"
+        color = "#FF5722" if (fiscal_topic_id is not None and i == fiscal_topic_id) else "steelblue"
         axes[i].barh(list(words)[::-1], list(weights)[::-1], color=color)
-        label = " ★ FISCAL" if i == fiscal_topic_id else ""
+        label = " ★ FISCAL" if (fiscal_topic_id is not None and i == fiscal_topic_id) else ""
         axes[i].set_title(f"Topic {i}{label}", fontsize=9)
         axes[i].tick_params(axis="y", labelsize=7)
         axes[i].tick_params(axis="x", labelsize=7)
@@ -362,7 +379,10 @@ def plot_wordclouds(para_df: pd.DataFrame):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def run(fiscal_topic_id: Optional[int] = FISCAL_TOPIC_ID):
+def run(
+    fiscal_topic_ids: list[int] = FISCAL_TOPIC_IDS,
+    ideology_topic_ids: list[int] = IDEOLOGY_TOPIC_IDS,
+):
     for d in [INTERIM_DIR, LDA_DIR, FIGURES_DIR, OUTPUTS_DIR]:
         os.makedirs(d, exist_ok=True)
 
@@ -402,36 +422,69 @@ def run(fiscal_topic_id: Optional[int] = FISCAL_TOPIC_ID):
         random_state=RANDOM_STATE,
     )
 
-    # ── 5. Identify fiscal topic ──────────────────────────────────────────────
-    if fiscal_topic_id is None:
-        fiscal_topic_id = detect_fiscal_topic(lda)
-        print(f"\nAuto-detected fiscal topic: Topic {fiscal_topic_id}")
-        print("  Top words:", [w for w, _ in lda.show_topic(fiscal_topic_id, topn=15)])
-        print("\n  Review lda_topics.png and set FISCAL_TOPIC_ID manually if needed.")
-    else:
-        print(f"\nUsing pre-set fiscal topic: Topic {fiscal_topic_id}")
+    # ── 5. Validate topic ID assignments ─────────────────────────────────────
+    # No auto-detection — researcher inspects topics and sets IDs manually.
+    if not fiscal_topic_ids:
+        # Save topic chart (no highlight) so user can inspect visually,
+        # then print the word table and exit.
+        plot_topic_words(lda, fiscal_topic_id=None)
+        print_all_topics(lda)
+        raise SystemExit(
+            "FISCAL_TOPIC_IDS is empty.  Inspect lda_topics.png and the topic "
+            "table above, then set FISCAL_TOPIC_IDS (and optionally "
+            "IDEOLOGY_TOPIC_IDS) in the config and re-run."
+        )
 
-    plot_topic_words(lda, fiscal_topic_id)
+    print(f"\nFiscal topic IDs  : {fiscal_topic_ids}")
+    for tid in fiscal_topic_ids:
+        print(f"  Topic {tid}: {[w for w, _ in lda.show_topic(tid, topn=12)]}")
+
+    if ideology_topic_ids:
+        print(f"\nIdeology topic IDs: {ideology_topic_ids}")
+        for tid in ideology_topic_ids:
+            print(f"  Topic {tid}: {[w for w, _ in lda.show_topic(tid, topn=12)]}")
+    else:
+        print("\nIdeology topic IDs: [] (not set — ideology_topic_prob will be 0.0)")
+
+    # Plot with first fiscal topic highlighted
+    plot_topic_words(lda, fiscal_topic_ids[0])
 
     # ── 6. Compute per-paragraph topic probabilities ──────────────────────────
     print("\nComputing per-paragraph topic probabilities...")
     topic_probs = []
     for bow in corpus:
         doc_topics = dict(lda.get_document_topics(bow, minimum_probability=0.0))
-        fiscal_prob = doc_topics.get(fiscal_topic_id, 0.0)
+
+        # Fiscal probability: max across all designated fiscal/monetary topic IDs.
+        # Max (not sum) keeps the value in [0,1] and avoids double-weighting.
+        fiscal_prob = max(doc_topics.get(tid, 0.0) for tid in fiscal_topic_ids)
+
+        # Ideology probability: max across all designated ideology topic IDs.
+        # Stored separately so tfidf_dictionary.py can apply a fractional weight.
+        ideology_prob = (
+            max(doc_topics.get(tid, 0.0) for tid in ideology_topic_ids)
+            if ideology_topic_ids else 0.0
+        )
+
         topic_probs.append({
             **{f"topic_{i}": doc_topics.get(i, 0.0) for i in range(best_k)},
-            "fiscal_topic_prob": fiscal_prob,
+            "fiscal_topic_prob":   fiscal_prob,
+            "ideology_topic_prob": ideology_prob,
         })
 
     prob_df = pd.DataFrame(topic_probs)
     para_df = pd.concat([para_df.reset_index(drop=True), prob_df], axis=1)
-    para_df["is_fiscal"] = para_df["fiscal_topic_prob"] >= FISCAL_MIN_PROB
+    para_df["is_fiscal"]   = para_df["fiscal_topic_prob"]   >= FISCAL_MIN_PROB
+    para_df["is_ideology"] = para_df["ideology_topic_prob"] >= FISCAL_MIN_PROB
     para_df.drop(columns=["tokens"], inplace=True)
 
-    print(f"  Fiscal paragraphs (prob ≥ {FISCAL_MIN_PROB}): "
+    print(f"  Fiscal paragraphs    (prob ≥ {FISCAL_MIN_PROB}): "
           f"{para_df['is_fiscal'].sum():,} / {len(para_df):,} "
           f"({para_df['is_fiscal'].mean()*100:.1f}%)")
+    if ideology_topic_ids:
+        print(f"  Ideology paragraphs  (prob ≥ {FISCAL_MIN_PROB}): "
+              f"{para_df['is_ideology'].sum():,} / {len(para_df):,} "
+              f"({para_df['is_ideology'].mean()*100:.1f}%)")
 
     # ── 7. Save outputs ───────────────────────────────────────────────────────
     out_csv = os.path.join(INTERIM_DIR, "paragraphs_lda.csv")
@@ -462,22 +515,40 @@ def run(fiscal_topic_id: Optional[int] = FISCAL_TOPIC_ID):
     plot_wordclouds(para_df)
 
     # ── 10. Summary ───────────────────────────────────────────────────────────
+    pres_paras = para_df[para_df["president"].isin(PRES_ORDER)]
     fiscal_share = (
-        para_df[para_df["president"].isin(PRES_ORDER)]
-        .groupby("president")["is_fiscal"]
+        pres_paras.groupby("president")["is_fiscal"]
         .agg(["sum", "count", "mean"])
         .rename(columns={"sum": "fiscal", "count": "total", "mean": "share"})
     )
+    ideology_share = (
+        pres_paras.groupby("president")["is_ideology"]
+        .agg(["sum", "mean"])
+        .rename(columns={"sum": "ideology", "mean": "ideology_share"})
+    )
+
+    def _topic_word_lines(ids, label):
+        lines = []
+        for tid in ids:
+            words = [w for w, _ in lda.show_topic(tid, topn=10)]
+            lines.append(f"  Topic {tid} ({label}) top words : {words}")
+        return lines
 
     summary_lines = [
         "=== LDA SUMMARY ===",
-        f"Best k            : {best_k}",
-        f"Fiscal topic id   : {fiscal_topic_id}",
-        f"Fiscal top words  : {[w for w, _ in lda.show_topic(fiscal_topic_id, topn=10)]}",
-        f"Fiscal paragraphs : {para_df['is_fiscal'].sum():,} / {len(para_df):,} "
+        f"Best k              : {best_k}",
+        f"Fiscal topic IDs    : {fiscal_topic_ids}",
+        "  fiscal_topic_prob  = max(topic_i for i in FISCAL_TOPIC_IDS)",
+        f"Ideology topic IDs  : {ideology_topic_ids}",
+        "  ideology_topic_prob= max(topic_i for i in IDEOLOGY_TOPIC_IDS)",
+    ] + _topic_word_lines(fiscal_topic_ids, "fiscal") \
+      + _topic_word_lines(ideology_topic_ids, "ideology") + [
+        f"Fiscal paragraphs   : {para_df['is_fiscal'].sum():,} / {len(para_df):,} "
         f"({para_df['is_fiscal'].mean()*100:.1f}%)",
-        f"Coherence metric  : {COHERENCE_METRIC}",
-        f"Fiscal threshold  : {FISCAL_MIN_PROB}",
+        f"Ideology paragraphs : {para_df['is_ideology'].sum():,} / {len(para_df):,} "
+        f"({para_df['is_ideology'].mean()*100:.1f}%)",
+        f"Coherence metric    : {COHERENCE_METRIC}",
+        f"Fiscal threshold    : {FISCAL_MIN_PROB}",
         "",
         "Fiscal paragraph share by president:",
         fiscal_share.to_string(),
@@ -486,8 +557,23 @@ def run(fiscal_topic_id: Optional[int] = FISCAL_TOPIC_ID):
     ]
     for i in range(best_k):
         top = [w for w, _ in lda.show_topic(i, topn=10)]
-        tag = " ← FISCAL" if i == fiscal_topic_id else ""
+        if i in fiscal_topic_ids:
+            tag = " ← FISCAL"
+        elif i in ideology_topic_ids:
+            tag = " ← IDEOLOGY"
+        else:
+            tag = ""
         summary_lines.append(f"  Topic {i:2d}{tag}: {top}")
+
+    # Append paragraph share tables
+    summary_lines += [
+        "",
+        "Fiscal paragraph share by president:",
+        fiscal_share.to_string(),
+        "",
+        "Ideology paragraph share by president:",
+        ideology_share.to_string(),
+    ]
 
     summary_text = "\n".join(summary_lines)
     print("\n" + summary_text)
@@ -500,8 +586,10 @@ def run(fiscal_topic_id: Optional[int] = FISCAL_TOPIC_ID):
         f.write(summary_text)
     print(f"\nSaved summary: {summary_path}")
 
-    fiscal_share.to_csv(os.path.join(tables_dir, "lda_fiscal_share.csv"))
-    print(f"Saved fiscal share table: {tables_dir}/lda_fiscal_share.csv")
+    fiscal_share.join(ideology_share).to_csv(
+        os.path.join(tables_dir, "lda_fiscal_share.csv")
+    )
+    print(f"Saved fiscal/ideology share table: {tables_dir}/lda_fiscal_share.csv")
 
     return lda, para_df
 

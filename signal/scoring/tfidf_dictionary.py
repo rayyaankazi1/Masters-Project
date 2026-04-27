@@ -108,9 +108,19 @@ TABLES_DIR   = os.path.join(_ROOT, "outputs", "tables")
 PRES_ORDER  = ["Macri", "AF", "Milei"]
 PRES_COLORS = {"Macri": "#2196F3", "AF": "#4CAF50", "Milei": "#FF5722"}
 
-# LDA dual-weight: set MONETARY_TOPIC_ID to None to use fiscal prob only.
-# With k=10, topic 8 top words: dinero, precios, tasa, cambio, mercado.
-MONETARY_TOPIC_ID = 8
+# lda.py stores fiscal_topic_prob  = max(topic_i for i in FISCAL_TOPIC_IDS) and
+#              ideology_topic_prob = max(topic_i for i in IDEOLOGY_TOPIC_IDS)
+# directly in paragraphs_lda.csv.  No secondary topic index needed here.
+MONETARY_TOPIC_ID = None   # kept for backward-compat; unused when None
+
+# Fractional weight applied to ideology paragraphs when computing the paragraph
+# weight.  Ideology paragraphs carry useful directional signal (Milei's libertarian
+# framing implies fiscal hawkishness; AF's social-rights framing implies dovishness)
+# but they are less directly fiscal than explicit-vocabulary paragraphs, so they
+# should contribute at partial strength.
+# Set to 0.0 to exclude ideology paragraphs entirely (pure fiscal weighting).
+# Set to 1.0 to treat them identically to fiscal paragraphs.
+IDEOLOGY_WEIGHT: float = 0.5
 
 # ── Negation detection ────────────────────────────────────────────────────────
 # Window sizes (in words) to inspect BEFORE a match start position.
@@ -324,14 +334,16 @@ def aggregate_to_speech(para_df: pd.DataFrame) -> pd.DataFrame:
     Primary   — max(fiscal_topic_prob, monetary_topic_prob) × n_tokens
     Robustness — equal-weight average across all paragraphs
     """
-    if MONETARY_TOPIC_ID is not None:
-        mon_col = f"topic_{MONETARY_TOPIC_ID}"
-        if mon_col in para_df.columns:
-            combined_prob = para_df[["fiscal_topic_prob", mon_col]].max(axis=1)
-        else:
-            combined_prob = para_df["fiscal_topic_prob"]
-    else:
-        combined_prob = para_df["fiscal_topic_prob"]
+    # Build combined paragraph relevance probability.
+    # fiscal_topic_prob already incorporates all fiscal/monetary LDA topics
+    # (set in lda.py via FISCAL_TOPIC_IDS).
+    # ideology_topic_prob contributes at IDEOLOGY_WEIGHT (0.0 = off, 1.0 = full).
+    combined_prob = para_df["fiscal_topic_prob"].copy()
+    if "ideology_topic_prob" in para_df.columns and IDEOLOGY_WEIGHT > 0:
+        combined_prob = combined_prob.combine(
+            para_df["ideology_topic_prob"] * IDEOLOGY_WEIGHT,
+            max,
+        )
 
     records = []
 
@@ -659,7 +671,7 @@ def run():
                             pres_neg[pres]["d_acc"] += 1
 
     summary_lines = [
-        "=== DICTIONARY SCORING SUMMARY (v4 — negation-aware) ===",
+        "=== DICTIONARY SCORING SUMMARY (v5 — negation-aware, direction-aware elimin*) ===",
         f"Hawkish terms : {len(hawkish_patterns)}",
         f"Dovish terms  : {len(dovish_patterns)}",
         "",
