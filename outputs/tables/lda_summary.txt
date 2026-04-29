@@ -1,63 +1,45 @@
 === LDA SUMMARY ===
-Best k              : 27
+Best k              : 9
 Fiscal topic IDs    : [4, 8]
   fiscal_topic_prob  = max(topic_i for i in FISCAL_TOPIC_IDS)
 Ideology topic IDs  : [0]
   ideology_topic_prob= max(topic_i for i in IDEOLOGY_TOPIC_IDS)
-  Topic 4 (fiscal) top words : ['inflacion', 'ciento', 'economia', 'pobreza', 'impuestos', 'precios', 'mitad', 'aumento', 'nivel', 'impuesto']
-  Topic 8 (fiscal) top words : ['estado', 'pandemia', 'tiempo', 'derecho', 'debemos', 'millones', 'hicimos', 'derechos', 'salud', 'fuimos']
-  Topic 0 (ideology) top words : ['verdad', 'dos', 'vida', 'algo', 'digo', 'tiempo', 'tengo', 'estaba', 'algunos', 'dije']
-Fiscal paragraphs   : 226 / 16,197 (1.4%)
-Ideology paragraphs : 1,584 / 16,197 (9.8%)
+  Topic 4 (fiscal) top words : ['inflacion', 'millones', 'deuda', 'dolares', 'fiscal', 'impuestos', 'banco', 'central', 'economia', 'pbi']
+  Topic 8 (fiscal) top words : ['dinero', 'problema', 'precios', 'demanda', 'interes', 'cambio', 'tasa', 'precio', 'economia', 'inflacion']
+  Topic 0 (ideology) top words : ['estado', 'libertad', 'derechos', 'justicia', 'derecho', 'politica', 'vida', 'ley', 'ideas', 'valores']
+Fiscal paragraphs   : 2,601 / 16,197 (16.1%)
+Ideology paragraphs : 1,759 / 16,197 (10.9%)
 Coherence metric    : c_v
 Fiscal threshold    : 0.25
 
 Fiscal paragraph share by president:
            fiscal  total     share
 president                         
-AF            119   6264  0.018997
-Macri           7   5247  0.001334
-Milei         100   4686  0.021340
+AF            294   6264  0.046935
+Macri         165   5247  0.031447
+Milei        2142   4686  0.457106
 
 All topic top words:
-  Topic  0 ← IDEOLOGY: ['verdad', 'dos', 'vida', 'algo', 'digo', 'tiempo', 'tengo', 'estaba', 'algunos', 'dije']
-  Topic  1: ['mujeres', 'docente', 'barrio', 'carrera', 'formacion', 'consumir', 'hogar', 'transito', 'tendencia', 'colectivo']
-  Topic  2: ['podamos', 'desafio', 'norte', 'cuidar', 'familia', 'familias', 'gobernador', 'federal', 'tenga', 'lamentablemente']
-  Topic  3: ['generacion', 'fuerzas_armadas', 'reducir_pobreza', 'viva', 'cuarentena', 'compartimos', 'familiares', 'nacio', 'obligacion', 'dirigentes']
-  Topic  4 ← FISCAL: ['inflacion', 'ciento', 'economia', 'pobreza', 'impuestos', 'precios', 'mitad', 'aumento', 'nivel', 'impuesto']
-  Topic  5: ['unidos', 'democracia', 'estados', 'seguridad', 'paz', 'narcotrafico', 'pueblos', 'solidaridad', 'compromisos', 'conectividad']
-  Topic  6: ['desarrollo', 'energia', 'produccion', 'inversion', 'ruta', 'insisto', 'desarrollar', 'tecnologia', 'industria', 'infraestructura']
-  Topic  7: ['estado', 'necesitan', 'posibilidad', 'empresa', 'empresas', 'necesita', 'productos', 'creemos', 'trabajan', 'exportar']
-  Topic  8 ← FISCAL: ['estado', 'pandemia', 'tiempo', 'derecho', 'debemos', 'millones', 'hicimos', 'derechos', 'salud', 'fuimos']
-  Topic  9: ['tengamos', 'justicia', 'tema', 'provincias', 'nacional', 'tranquilidad', 'problemas', 'pena', 'cristina', 'decision']
-  Topic 10: ['crecimiento', 'crece', 'numero', 'creciendo', 'datos', 'habido', 'creditos', 'blanco', 'estadisticas', 'ritmo']
-  Topic 11: ['feliz', 'vacunas', 'protagonistas', 'juan', 'san', 'carne', 'barrios', 'recorrido', 'dosis', 'circulacion']
-  Topic 12: ['informacion', 'chicos', 'docentes', 'cuidado', 'atender', 'internet', 'llegue', 'ministro', 'horacio', 'plan']
-  Topic 13: ['politica', 'sistema', 'ley', 'mayor', 'libertad', 'proceso', 'nuevo', 'nacional', 'estado', 'congreso']
-  Topic 14: ['brasil', 'visita', 'amigo', 'buenas_tardes', 'italia', 'jorge', 'periodista', 'alfredo', 'querido', 'chile']
-  Topic 15: ['kilometros', 'boca', 'poner_pie', 'capacitacion', 'futbol', 'nueva_etapa', 'aprender', 'distancia', 'confio', 'partido']
-  Topic 16: ['estamos', 'trabajo', 'importante', 'mejor', 'queremos', 'futuro', 'podemos', 'crecer', 'trabajar', 'camino']
-  Topic 17: ['abierto', 'estamos_trabajando', 'entusiasmo', 'reducir', 'eje', 'tramites', 'area', 'plan', 'trabajado', 'esperando']
-  Topic 18: ['ciudad', 'buenos', 'obras', 'aires', 'provincia', 'alegria', 'obra', 'llevar', 'gobernador', 'agua']
-  Topic 19: ['campo', 'vacuna', 'transporte', 'revolucion', 'visitar', 'productor', 'companeros', 'peron', 'derechos_humanos', 'pasajeros']
-  Topic 20: ['deuda', 'banco_central', 'millones_dolares', 'dolares', 'ajuste', 'cambio', 'inflacion', 'hecho', 'pesos', 'hicimos']
-  Topic 21: ['plan', 'obra_publica', 'delito', 'dialogar', 'martin', 'ministra', 'autos', 'edificio', 'gana', 'junio']
-  Topic 22: ['america', 'latina', 'lucha', 'asumido', 'san_martin', 'memoria', 'causa', 'independencia', 'diversidad', 'europa']
-  Topic 23: ['universidad', 'universidades', 'alrededor', 'estudiar', 'miles', 'veo', 'rio', 'productores', 'linda', 'equipos']
-  Topic 24: ['problema', 'ayudar', 'hablamos', 'afecto', 'solucion', 'afecta', 'cara', 'sucediendo', 'minimo', 'anuncio']
-  Topic 25: ['problema', 'dinero', 'economia', 'realidad', 'modelo', 'basicamente', 'precio', 'precios', 'digamos', 'mercado']
-  Topic 26: ['ibamos', 'hicimos', 'sabiamos', 'tuvimos', 'queriamos', 'recursos_humanos', 'terminamos', 'terminar', 'estacion', 'siete']
+  Topic  0 ← IDEOLOGY: ['estado', 'libertad', 'derechos', 'justicia', 'derecho', 'politica', 'vida', 'ley', 'ideas', 'valores']
+  Topic  1: ['buenos', 'aires', 'ciudad', 'verdad', 'pandemia', 'educacion', 'salud', 'publica', 'casa', 'problema']
+  Topic  2: ['trabajo', 'empresas', 'crecimiento', 'economia', 'sector', 'empleo', 'empresa', 'crecer', 'empresarios', 'generar']
+  Topic  3: ['energia', 'desarrollo', 'produccion', 'tecnologia', 'industria', 'estado', 'gas', 'informacion', 'producir', 'millones']
+  Topic  4 ← FISCAL: ['inflacion', 'millones', 'deuda', 'dolares', 'fiscal', 'impuestos', 'banco', 'central', 'economia', 'pbi']
+  Topic  5: ['estamos', 'juntos', 'camino', 'queremos', 'somos', 'tiempo', 'podemos', 'importante', 'trabajar', 'futuro']
+  Topic  6: ['nestor', 'democracia', 'cristina', 'pie', 'tengo', 'jefe', 'politica', 'poner', 'quien', 'gabinete']
+  Topic  7: ['trabajo', 'estoy', 'vida', 'gobernador', 'crecer', 'gran', 'equipo', 'alegria', 'norte', 'mejor']
+  Topic  8 ← FISCAL: ['dinero', 'problema', 'precios', 'demanda', 'interes', 'cambio', 'tasa', 'precio', 'economia', 'inflacion']
 
 Fiscal paragraph share by president:
            fiscal  total     share
 president                         
-AF            119   6264  0.018997
-Macri           7   5247  0.001334
-Milei         100   4686  0.021340
+AF            294   6264  0.046935
+Macri         165   5247  0.031447
+Milei        2142   4686  0.457106
 
 Ideology paragraph share by president:
            ideology  ideology_share
 president                          
-AF              998        0.159323
-Macri           338        0.064418
-Milei           248        0.052924
+AF              386        0.061622
+Macri           129        0.024585
+Milei          1244        0.265472
