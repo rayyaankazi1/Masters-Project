@@ -83,7 +83,7 @@ NO_ABOVE        = 0.55                      # max document frequency (fraction)
 #                          IDs below — saves ~40 minutes vs a full re-run.
 # SKIP_TRAINING = False →  run full grid search + train (needed when corpus or
 #                          preprocessing changes).
-SKIP_TRAINING: bool = True
+SKIP_TRAINING: bool = False
 
 # ── Fiscal topic IDs ──────────────────────────────────────────────────────────
 # List every topic whose top words clearly relate to fiscal or monetary policy.
@@ -428,8 +428,14 @@ def run(
     # ── 5. Validate topic ID assignments ─────────────────────────────────────
     # No auto-detection — researcher inspects topics and sets IDs manually.
     if not fiscal_topic_ids:
-        # Save topic chart (no highlight) so user can inspect visually,
-        # then print the word table and exit.
+        # Save the freshly trained model before exiting so SKIP_TRAINING=True
+        # works correctly on the next run (when IDs are populated).
+        if not SKIP_TRAINING:
+            lda.save(os.path.join(LDA_DIR, "lda_model"))
+            dictionary.save(os.path.join(LDA_DIR, "dictionary"))
+            with open(os.path.join(LDA_DIR, "corpus.pkl"), "wb") as f:
+                pickle.dump(corpus, f)
+            print(f"  Model saved to {LDA_DIR}/ — set SKIP_TRAINING=True on next run.")
         plot_topic_words(lda, fiscal_topic_id=None)
         print_all_topics(lda)
         raise SystemExit(
@@ -437,7 +443,7 @@ def run(
             "  outputs/figures/lda_topics.png\n"
             "  outputs/tables/lda_topic_inspection.txt\n"
             "Then set FISCAL_TOPIC_IDS (and optionally IDEOLOGY_TOPIC_IDS)\n"
-            "in lda.py and re-run to produce paragraphs_lda.csv."
+            "and SKIP_TRAINING=True in lda.py and re-run to produce paragraphs_lda.csv."
         )
 
     print(f"\nFiscal topic IDs  : {fiscal_topic_ids}")
