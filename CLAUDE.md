@@ -1,5 +1,5 @@
 # Masters-Project — Claude Handoff Document
-**Last updated:** 2026-04-27  
+**Last updated:** 2026-04-29  
 **Author:** Rayyaan Kazi (BSE Master's student)  
 **Project:** Fiscal hawkishness NLP signal from Argentine presidential speeches as input to a Bayesian Structural VAR
 
@@ -65,8 +65,9 @@ where H_t = hawkish-hit fiscal paragraphs, D_t = dovish-hit fiscal paragraphs, P
 | AF | 47 | −0.696 | 0.857 | Dovish (social spending, pandemic relief) |
 | Milei | 29 | +0.843 | 0.539 | Strongly hawkish (shock therapy) |
 
-Separation: Milei–AF gap = 1.54 z-units. Ordering makes strong economic sense.  
-Threshold robustness: r=0.748 between 0.15 and 0.25 threshold signals (full panel of 113 overlapping months).
+Separation: Milei–AF gap = 1.62 z-units. Ordering makes strong economic sense.  
+Threshold robustness: r=0.748 between 0.15 and 0.25 threshold signals (full panel of 113 overlapping months).  
+Winsorisation: raw signal clipped at 2.5/97.5 pct before z-scoring (r=0.989 with raw). Macri thin-month spike fixed: +2.92z → +1.82z.
 
 ---
 
@@ -74,6 +75,7 @@ Threshold robustness: r=0.748 between 0.15 and 0.25 threshold signals (full pane
 
 ### Key design choices
 - **EPU paragraph counting** (not TF-IDF): each fiscal paragraph casts a binary vote (has_hawkish / has_dovish); monthly signal = (H−D)/P pooled across all speeches in the month
+- **Winsorisation at 2.5/97.5 pct:** raw (H−D)/P clipped before z-scoring. Prevents thin Macri months (P_t=2–5) from producing +2.4–2.9z artefact spikes. r(winsorised, raw)=0.989. Unwinsorised series retained as `net_hawkish_z_raw` for audit.
 - **Morphological matching:** each term gets `\w*` suffix so "ajuste fiscal" matches "ajustes fiscales" etc.
 - **Sentence-level scoring** with `finditer` — matches within sentences, not across them
 - **Fiscal threshold FISCAL_MIN_PROB=0.15** in tfidf_dictionary.py (overrides lda.py's 0.25 default) — gives full 49-month Macri coverage and halves monthly variance

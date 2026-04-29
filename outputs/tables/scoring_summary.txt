@@ -19,9 +19,9 @@ Signal formula: signal_t = (H_t − D_t) / P_t
 ── MONTHLY SIGNAL (BVAR input: net_hawkish_z) ────────────────────────
   President  N months      Mean       Std       Min       Max    Mean-z     Std-z
 ------------------------------------------------------------------------------
-  Macri           49    0.0352    0.1813   -0.3000    0.6000    0.1684    0.8818
-  AF              47   -0.1425    0.1761   -0.5714    0.3333   -0.6959    0.8567
-  Milei           29    0.1740    0.1108   -0.0909    0.3468    0.8434    0.5391
+  Macri           49    0.0352    0.1813   -0.3000    0.6000    0.1373    0.8173
+  AF              47   -0.1425    0.1761   -0.5714    0.3333   -0.7076    0.8573
+  Milei           29    0.1740    0.1108   -0.0909    0.3468    0.9149    0.5793
 
 ── NEGATION SUPPRESSION REPORT ────────────────────────────────────────
   Macri   hawkish:   99 accepted,   2 negated (2.0%)  |  dovish:  134 accepted,   3 negated (2.2%)

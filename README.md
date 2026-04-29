@@ -69,7 +69,17 @@ LDA is implemented in Gensim with a grid search over the number of topics (*k* �
 
 ### Stage 4. Dictionary-based scoring (`signal/scoring/tfidf_dictionary.py`)
 
-A Spanish fiscal hawkish/dovish dictionary is hand-curated in `signal/dictionaries/` with separate lists for hawkish terms (e.g., *ajuste fiscal*, *déficit cero*, *equilibrio fiscal*, *motosierra*, *emisión monetaria cero*, *austeridad*) and dovish terms (e.g., *inversión social*, *estado presente*, *políticas redistributivas*, *obra pública*, *estímulo fiscal*). Scoring uses normalized term frequency at the paragraph level, weighted by LDA fiscal-topic probability, and aggregated to the speech level. The dictionary itself is version-controlled as part of the methodology.
+A Spanish fiscal hawkish/dovish dictionary is hand-curated in `signal/dictionaries/` with 61 hawkish terms (e.g., *ajuste fiscal*, *déficit cero*, *equilibrio fiscal*, *emisión monetaria cero*, *superávit fiscal*) and 46 dovish terms (e.g., *obra pública*, *estado presente*, *salario real*, *asignación universal*, *tarjeta alimentar*). Scoring follows the **EPU paragraph-counting methodology** (Baker, Bloom & Davis 2016): each fiscal paragraph casts a binary vote (has\_hawkish / has\_dovish), and the monthly signal is `(H_t − D_t) / P_t` where H_t and D_t are hawkish- and dovish-hit fiscal paragraph counts and P_t is total fiscal paragraphs in the month. The signal is z-scored over the full cross-president sample. A two-tier negation filter (Tier 1: 10-word window for critical/ironic framing; Tier 2: 3-word window for bare negation) suppresses false hits at an overall rate of ~3.4%.
+
+**Current signal (`net_hawkish_z` in `data/processed/bvar_signal.csv`):**
+
+| President | N months | Mean-z | Std-z |
+|-----------|----------|--------|-------|
+| Macri (2015–2019) | 49 | +0.17 | 0.88 |
+| AF (2019–2023) | 47 | −0.70 | 0.86 |
+| Milei (2023–2026) | 29 | +0.84 | 0.54 |
+
+Milei–AF separation: 1.54 z-units. Fiscal threshold: `fiscal_topic_prob ≥ 0.15` (tunable in `tfidf_dictionary.py` without re-running LDA). Threshold robustness: r = 0.748 with the stricter 0.25 threshold over 113 overlapping months.
 
 ### Stage 5. LLM-based scoring (`signal/scoring/llm_scoring.py`)
 
@@ -87,9 +97,9 @@ A stratified random sample of ≈300–500 paragraphs is hand-labeled by two ind
 
 The validation table is the single most important artefact produced by this pipeline. If the correlations are weak, the rest of the thesis cannot be trusted.
 
-### Stage 7. Monthly aggregation (`signal/scoring/aggregate_monthly.py`)
+### Stage 7. Monthly aggregation (integrated into `signal/scoring/tfidf_dictionary.py`)
 
-Speech-level scores are aggregated to the calendar month using word-count weights. Months with multiple major addresses are handled via weighted averaging; months with no presidential communication are interpolated using the lagged speech-level score (with a robustness check that uses zeros instead). The output is `data/processed/hawkishness_monthly.csv`.
+Monthly aggregation uses EPU-style pooling: H_t, D_t, P_t are summed across all speeches in the month before dividing, giving equal weight to every fiscal paragraph regardless of which speech it came from. A robustness column `net_hawkish_rob_z` uses total paragraphs N_t as denominator. The primary BVAR-ready output is `data/processed/bvar_signal.csv` (columns: `year_month`, `president`, `net_hawkish_z`). Full signal detail (H_t, D_t, P_t, raw signal, robustness column) is in `data/interim/monthly_signal.csv`.
 
 ## Pipeline 2 — Econometrics (`econometrics/`)
 
@@ -133,7 +143,10 @@ Python dependencies are pinned in `requirements.txt` (signal pipeline). R depend
 
 ## Timeline and status
 
-Five-week write-up phase. Active priorities: validation sprint (hand-labels, IRR, external correlations), one identification upgrade beyond Cholesky (narrative proxy-SVAR preferred), and the pre-Milei / post-Milei regime comparison as the headline result.
+**Signal pipeline (Stages 1–4): COMPLETE as of 2026-04-29.**  
+Primary BVAR input `net_hawkish_z` is in `data/processed/bvar_signal.csv`, covering 127 monthly observations (2015-12 → 2026-04). Two AF months are NaN (zero fiscal paragraphs); all other 125 months have valid signal.
+
+**Active priorities:** (1) External validation — correlate `net_hawkish_z` with Argentine primary balance, EMBI+, ARS/USD. (2) Stage 5 LLM cross-validation on ~200 sampled fiscal paragraphs. (3) BVAR construction in `econometrics/` (currently empty skeleton). (4) Pre-Milei / post-Milei split-sample IRF comparison as the headline result.
 
 ## References
 

@@ -340,10 +340,24 @@ def aggregate_to_monthly(speech_df: pd.DataFrame) -> pd.DataFrame:
     monthly["ym_dt"] = pd.to_datetime(monthly["year_month"])
     monthly.sort_values(["ym_dt", "president"], inplace=True, ignore_index=True)
 
+    # ── Winsorise at 2.5th / 97.5th percentile before z-scoring ─────────────
+    # Thin months (low P_t) can produce extreme (H−D)/P ratios from a handful
+    # of hits.  Winsorising the raw signal before z-scoring prevents a single
+    # P_t=2 month (e.g. Macri 2017-12: raw=0.50 → z≈+2.4 unwinsorised) from
+    # dominating the variance.  This is standard in the EPU / text-based macro
+    # literature (Baker–Bloom–Davis 2016 use a similar outlier cap).
+    # The winsorised primary series is the BVAR input (net_hawkish_z).
+    # The unwinsorised series is retained as net_hawkish_z_raw for audit.
+    for raw_col in ["net_hawkish", "net_hawkish_rob"]:
+        lo = monthly[raw_col].quantile(0.025)
+        hi = monthly[raw_col].quantile(0.975)
+        monthly[raw_col + "_wins"] = monthly[raw_col].clip(lo, hi)
+
     # ── Z-score over full cross-president sample ──────────────────────────────
     for raw_col, z_col in [
-        ("net_hawkish",     "net_hawkish_z"),
-        ("net_hawkish_rob", "net_hawkish_rob_z"),
+        ("net_hawkish_wins",     "net_hawkish_z"),      # PRIMARY — winsorised
+        ("net_hawkish_rob_wins", "net_hawkish_rob_z"),  # robustness — winsorised
+        ("net_hawkish",          "net_hawkish_z_raw"),  # audit — unwinsorised
     ]:
         mu  = monthly[raw_col].mean()
         sig = monthly[raw_col].std()
