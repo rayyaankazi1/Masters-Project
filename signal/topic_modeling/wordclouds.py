@@ -39,6 +39,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
+from gensim.models import Phrases
 from gensim.models.phrases import Phraser
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -46,7 +47,6 @@ _HERE        = os.path.dirname(os.path.abspath(__file__))
 _ROOT        = os.path.abspath(os.path.join(_HERE, "..", ".."))
 PARA_CSV     = os.path.join(_ROOT, "data", "interim", "paragraphs_lda.csv")
 FIGURES_DIR  = os.path.join(_ROOT, "outputs", "figures")
-LDA_DIR      = os.path.join(_ROOT, "data", "interim", "lda")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 FISCAL_MIN_PROB = 0.25
@@ -60,12 +60,19 @@ MAX_WORDS = 120
 WC_WIDTH  = 1400
 WC_HEIGHT = 700
 
-# Phrases to suppress even if detected — keep in sync with lda.py PHRASE_BLACKLIST
-PHRASE_BLACKLIST: set[str] = {
+# ── Phrase detection (visual only — independent of LDA) ───────────────────────
+# Phrases are detected here purely for display quality in word clouds.
+# A lower threshold than LDA (15 vs the LDA's 40) is fine — visual noise
+# in a cloud is far less harmful than topic coherence degradation.
+WC_PHRASES_MIN_COUNT = 5
+WC_PHRASES_THRESHOLD = 15
+
+# Compounds to suppress even if detected — geographic and ceremonial noise.
+WC_PHRASE_BLACKLIST: set[str] = {
     "buenos_aires", "ciudad_buenos_aires", "mar_plata", "rio_negro",
     "santa_fe", "san_juan", "san_luis", "la_plata", "tierra_fuego",
     "muchas_gracias", "muy_bien", "muy_importante", "por_favor",
-    "mas_alla", "dia_dia",
+    "mas_alla", "dia_dia", "buenas_tardes", "buenas_noches",
     "america_latina", "estados_unidos", "naciones_unidas", "union_europea",
 }
 
@@ -140,32 +147,46 @@ def tokenise(text: str) -> list[str]:
         if len(w) >= 4 and w not in STOPWORDS
     ]
 
-def load_phrase_models() -> tuple[Phraser | None, Phraser | None]:
-    """Load bigram/trigram models saved by lda.py, if available."""
-    bp = os.path.join(LDA_DIR, "bigram_model")
-    tp = os.path.join(LDA_DIR, "trigram_model")
-    if os.path.exists(bp) and os.path.exists(tp):
-        print("  Phrase models found — applying bigram/trigram expansion.")
-        return Phraser.load(bp), Phraser.load(tp)
-    print("  Phrase models not found — using unigrams only.")
-    return None, None
+def build_phrase_models(para_df: pd.DataFrame) -> tuple[Phraser, Phraser]:
+    """
+    Fit bigram + trigram phrase models on the paragraph corpus.
+    Uses a permissive threshold (WC_PHRASES_THRESHOLD=15) — fine for
+    display quality, independent of the LDA's stricter settings.
+    """
+    texts = para_df["text_para"].astype(str).apply(tokenise).tolist()
+    bigram_model  = Phrases(texts,
+                            min_count=WC_PHRASES_MIN_COUNT,
+                            threshold=WC_PHRASES_THRESHOLD)
+    trigram_model = Phrases(bigram_model[texts],
+                            min_count=WC_PHRASES_MIN_COUNT,
+                            threshold=WC_PHRASES_THRESHOLD)
+    return Phraser(bigram_model), Phraser(trigram_model)
 
 def apply_phrases(tokens: list[str],
-                  bigram: Phraser | None,
-                  trigram: Phraser | None) -> list[str]:
-    if bigram is None:
-        return tokens
+                  bigram: Phraser,
+                  trigram: Phraser) -> list[str]:
     tokens = list(bigram[tokens])
-    if trigram is not None:
-        tokens = list(trigram[tokens])
-    # Split any blacklisted phrases back into unigrams
+    tokens = list(trigram[tokens])
+    # Split any blacklisted compounds back into unigrams
     result = []
     for t in tokens:
-        if t in PHRASE_BLACKLIST:
+        if t in WC_PHRASE_BLACKLIST:
             result.extend(t.split("_"))
         else:
             result.append(t)
     return result
+
+# Module-level phrase model cache — built once in run(), used by _df_to_text
+_bigram:  Phraser | None = None
+_trigram: Phraser | None = None
+
+def _df_to_text(df: pd.DataFrame) -> str:
+    """Tokenise paragraphs, apply phrase models, join for WordCloud."""
+    tokens_list = df["text_para"].astype(str).apply(
+        lambda t: apply_phrases(tokenise(t), _bigram, _trigram)
+        if _bigram is not None else tokenise(t)
+    )
+    return " ".join(" ".join(toks) for toks in tokens_list)
 
 def make_wc(text: str, bg_color: str, colormap: str) -> WordCloud:
     return WordCloud(
@@ -192,14 +213,9 @@ def save_wc(wc: WordCloud, title: str, path: str):
 
 # ── Shared helper ─────────────────────────────────────────────────────────────
 
-_bigram:  Phraser | None = None
-_trigram: Phraser | None = None
-
 def _df_to_text(df: pd.DataFrame) -> str:
-    """Tokenise, apply phrase models, join into a single string for WordCloud."""
-    tokens_list = df["text_para"].astype(str).apply(
-        lambda t: apply_phrases(tokenise(t), _bigram, _trigram)
-    )
+    """Tokenise paragraphs and join into a single string for WordCloud."""
+    tokens_list = df["text_para"].astype(str).apply(tokenise)
     return " ".join(" ".join(toks) for toks in tokens_list)
 
 
@@ -369,10 +385,7 @@ def run():
     global _bigram, _trigram
     os.makedirs(FIGURES_DIR, exist_ok=True)
 
-    print("Loading phrase models...")
-    _bigram, _trigram = load_phrase_models()
-
-    print(f"\nLoading paragraph dataframe from {PARA_CSV}...")
+    print(f"Loading paragraph dataframe from {PARA_CSV}...")
     if not os.path.exists(PARA_CSV):
         raise FileNotFoundError(
             f"{PARA_CSV} not found. Run signal/topic_modeling/lda.py first."
@@ -387,6 +400,11 @@ def run():
             n = (para_df[col] >= FISCAL_MIN_PROB).sum()
             pct = n / len(para_df) * 100
             print(f"  {label.capitalize()} paragraphs (≥{FISCAL_MIN_PROB}): {n:,} ({pct:.1f}%)")
+
+    print(f"\nBuilding phrase models for word clouds "
+          f"(min_count={WC_PHRASES_MIN_COUNT}, threshold={WC_PHRASES_THRESHOLD})...")
+    _bigram, _trigram = build_phrase_models(para_df)
+    print("  Done.")
 
     plot_full_corpus(para_df)
     plot_fiscal_filtered(para_df)

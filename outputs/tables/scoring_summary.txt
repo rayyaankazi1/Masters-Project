@@ -12,9 +12,9 @@ Paragraphs with hits:
 Speech-level net_tf_weighted by president:
                mean       std       min       50%       max
 president                                                  
-Macri     -0.000038  0.002075 -0.012758  0.000000  0.014199
+Macri     -0.000038  0.002075 -0.012756  0.000000  0.014197
 AF        -0.001763  0.004257 -0.069767  0.000000  0.010727
-Milei      0.003147  0.004735 -0.005030  0.001736  0.031226
+Milei      0.003147  0.004735 -0.005029  0.001736  0.031227
 
 ── NEGATION SUPPRESSION REPORT ──────────────────────────────────
   Macri   hawkish:   99 accepted,    2 negated (2.0% suppressed)  |  dovish:  134 accepted,    3 negated (2.2% suppressed)
@@ -99,4 +99,4 @@ President     Mean-z      Std-z
 --------------------------------
 Macri       -0.0642     0.2725
 AF          -0.7455     0.5616
-Milei        1.3680     0.9561
+Milei        1.3680     0.9560
