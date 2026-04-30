@@ -1,14 +1,24 @@
 """
-signal/scoring/tfidf_dictionary.py  (v6 — EPU-style paragraph counting)
+signal/scoring/tfidf_dictionary.py  (v7 — keyword fiscal filter)
 ────────────────────────────────────────────────────────────────────────
 Stage 4 of the signal pipeline.
 
 Signal construction follows Baker, Bloom & Davis (2016) EPU methodology:
 
-    Stage 1 — LDA fiscal filter (lda.py)
-        Each paragraph is labelled fiscal if fiscal_topic_prob ≥ FISCAL_MIN_PROB.
-        This is a binary, clean gate — the relevance decision is fully separated
-        from the directional decision.
+    Stage 1 — Keyword fiscal filter (this script)
+        A paragraph is labelled fiscal if it contains at least one term from
+        FISCAL_KEYWORDS — a short list of core fiscal-policy vocabulary drawn
+        directly from the Baker–Bloom–Davis (2016) article-filtering approach.
+        This replaces the v6 LDA-threshold filter.
+
+        Rationale: the LDA filter (v6) created an asymmetric bias — it captured
+        ~84% of hawkish hits but only ~40% of dovish hits, because hawkish terms
+        are inherently fiscal-accounting vocabulary (deficit, superavit) while
+        dovish terms include social-spending vocabulary (obra publica, tarjeta
+        alimentar) that the LDA assigned to a separate welfare topic.
+        A keyword filter is symmetric: it admits paragraphs that discuss fiscal
+        policy in either direction.  LDA topic probabilities are retained in
+        paragraphs_scored.csv for use as a validation/narrative exhibit.
 
     Stage 2 — Dictionary direction (this script)
         Within fiscal paragraphs only, each paragraph casts a directional vote:
@@ -35,8 +45,8 @@ Signal construction follows Baker, Bloom & Davis (2016) EPU methodology:
 
         Primary BVAR column: net_hawkish_z  in monthly_signal.csv
 
-Negation detection (unchanged from v5)
-───────────────────────────────────────
+Negation detection (unchanged from v5/v6)
+──────────────────────────────────────────
 Before counting a dictionary hit, a word-window before the match is scanned
 for critical/ironic usage signals (Tier 1, 10-word window) and bare negation
 words (Tier 2, 3-word window).  Negated hits are tracked separately and
@@ -54,6 +64,7 @@ Writes
     data/interim/paragraphs_scored.csv       paragraph-level with hit flags
     data/interim/speeches_scored.csv         speech-level counts
     data/interim/monthly_signal.csv          monthly BVAR-ready signal
+    data/processed/bvar_signal.csv           clean BVAR-ready output
     outputs/figures/scoring_overview.png     summary charts
     outputs/tables/scoring_summary.txt       audit report
 """
@@ -84,17 +95,40 @@ TABLES_DIR  = os.path.join(_ROOT, "outputs", "tables")
 PRES_ORDER  = ["Macri", "AF", "Milei"]
 PRES_COLORS = {"Macri": "#2196F3", "AF": "#4CAF50", "Milei": "#FF5722"}
 
-# Fiscal paragraph threshold — paragraphs with fiscal_topic_prob below this
-# value are excluded from signal construction entirely.
-# Applied directly from fiscal_topic_prob so you can tune here without
-# re-running the 40-minute LDA.  lda.py encodes FISCAL_MIN_PROB=0.25 in the
-# is_fiscal column, but this script overrides it at load time.
+# ── Keyword fiscal filter (v7) ────────────────────────────────────────────────
+# A paragraph is classified as fiscal if it contains at least one of these
+# terms.  Follows Baker, Bloom & Davis (2016): fiscal relevance is determined
+# by keyword presence, not a topic model.
 #
-# Chosen value: 0.15 (primary).
-#   — At 0.25: 165 Macri fiscal paras, 41/49 months covered, std(net_hawkish)=0.40
-#   — At 0.15: 478 Macri fiscal paras, 49/49 months covered, std(net_hawkish)=0.18
-#   Pearson r between 0.15 and 0.25 signals = 0.748 (threshold sensitivity check).
-FISCAL_MIN_PROB = 0.15
+# Design principles:
+#   1. Symmetric — list covers both hawkish fiscal vocabulary (deficit,
+#      ajuste, presupuesto) and dovish fiscal vocabulary (obra publica,
+#      inversion publica, subsidio) so neither direction is disadvantaged.
+#   2. Short and auditable — each term is immediately legible; no model
+#      artefacts or threshold choices.
+#   3. Directly citable — Baker et al. (2016) Appendix B uses the same
+#      keyword-in-text approach for their EPU fiscal policy category.
+#
+# LDA fiscal_topic_prob is retained in the data for validation purposes.
+FISCAL_KEYWORDS = [
+    # Core fiscal / budget vocabulary
+    "deficit",
+    "superavit",
+    "gasto",          # gasto* matches gasto, gastos, gasto publico etc.
+    "presupuest",     # presupuesto, presupuestario, presupuestaria
+    "fiscal",
+    "impuesto",       # impuesto, impuestos, impositivo
+    "deuda",
+    "inflacion",
+    "ajuste",
+    "subsidio",       # subsidio, subsidios
+    "recaudacion",
+    "austeridad",
+    # Public investment / social spending (ensures dovish content is captured)
+    "obra publica",
+    "inversion publica",
+    "inversion social",
+]
 
 # ── Negation detection ────────────────────────────────────────────────────────
 NEG_WINDOW_STRONG = 10   # words before match: critical-framing signals
@@ -183,6 +217,33 @@ def load_dictionary(path: str) -> list[tuple[str, re.Pattern]]:
             terms.append(normalise(line))
     unique_terms = sorted(set(terms), key=len, reverse=True)
     return [(t, term_to_pattern(t)) for t in unique_terms]
+
+
+# ── Keyword fiscal filter (v7) ────────────────────────────────────────────────
+
+def build_fiscal_patterns() -> list[re.Pattern]:
+    """
+    Compile regex patterns for the keyword fiscal filter.
+    Each keyword gets a \\w* suffix for morphological flexibility,
+    consistent with how dictionary terms are matched.
+    """
+    patterns = []
+    for kw in FISCAL_KEYWORDS:
+        norm = normalise(kw)
+        words = norm.split()
+        pat = re.compile(
+            r"\b" + r"\s+".join(re.escape(w) + r"\w*" for w in words)
+        )
+        patterns.append(pat)
+    return patterns
+
+
+_FISCAL_PATTERNS: list[re.Pattern] = []   # populated in run()
+
+
+def is_fiscal_paragraph(text_norm: str) -> bool:
+    """Return True if the normalised paragraph text contains any fiscal keyword."""
+    return any(pat.search(text_norm) for pat in _FISCAL_PATTERNS)
 
 
 # ── Paragraph-level scoring ───────────────────────────────────────────────────
@@ -453,15 +514,32 @@ def run():
         )
     para_df = pd.read_csv(PARA_CSV)
     para_df = para_df[para_df["president"].isin(PRES_ORDER)].copy()
-    # Override is_fiscal from fiscal_topic_prob so threshold can be tuned here
-    # without re-running lda.py.  Robustness flag uses stricter 0.25 threshold.
-    # Override is_fiscal from fiscal_topic_prob so threshold can be tuned
-    # here without re-running lda.py.
-    para_df["is_fiscal"] = para_df["fiscal_topic_prob"] >= FISCAL_MIN_PROB
+
+    # ── v7: keyword fiscal filter ─────────────────────────────────────────────
+    # Build compiled patterns (populate module-level list used by is_fiscal_paragraph)
+    global _FISCAL_PATTERNS
+    _FISCAL_PATTERNS = build_fiscal_patterns()
+    print(f"  Fiscal keyword filter: {len(FISCAL_KEYWORDS)} keywords")
+
+    # Apply filter on normalised text — symmetric for hawkish and dovish content
+    para_df["text_norm"] = para_df["text_para"].apply(
+        lambda t: normalise(str(t))
+    )
+    para_df["is_fiscal"] = para_df["text_norm"].apply(is_fiscal_paragraph)
+    # Retain LDA fiscal_topic_prob column for validation exhibit (not used for scoring)
+
     n_total  = len(para_df)
     n_fiscal = para_df["is_fiscal"].sum()
     print(f"  {n_total:,} paragraphs loaded")
-    print(f"  {n_fiscal:,} fiscal at threshold={FISCAL_MIN_PROB} ({n_fiscal/n_total*100:.1f}%)")
+    print(f"  {n_fiscal:,} fiscal by keyword filter ({n_fiscal/n_total*100:.1f}%)")
+
+    # Overlap with LDA filter (validation check)
+    if "fiscal_topic_prob" in para_df.columns:
+        lda_fiscal = para_df["fiscal_topic_prob"] >= 0.15
+        overlap = (para_df["is_fiscal"] & lda_fiscal).sum()
+        kw_only = (para_df["is_fiscal"] & ~lda_fiscal).sum()
+        lda_only = (~para_df["is_fiscal"] & lda_fiscal).sum()
+        print(f"  LDA/keyword overlap: both={overlap:,} | kw-only={kw_only:,} | lda-only={lda_only:,}")
 
     # ── 3. Score each paragraph (all paragraphs — filter applied at step 4) ──
     print("\nScoring paragraphs (negation-aware, sentence-level)...")
@@ -503,6 +581,7 @@ def run():
     drop_cols = [
         "hawkish_terms_matched", "dovish_terms_matched",
         "hawkish_terms_negated", "dovish_terms_negated",
+        "text_norm",
     ]
     para_out = os.path.join(INTERIM_DIR, "paragraphs_scored.csv")
     para_scored.drop(columns=drop_cols, errors="ignore").to_csv(para_out, index=False)
@@ -515,6 +594,15 @@ def run():
     monthly_out = os.path.join(INTERIM_DIR, "monthly_signal.csv")
     monthly_df.to_csv(monthly_out, index=False)
     print(f"Saved: {monthly_out}")
+
+    # Clean BVAR-ready output (minimal columns)
+    processed_dir = os.path.join(_ROOT, "data", "processed")
+    os.makedirs(processed_dir, exist_ok=True)
+    bvar_cols = ["year_month", "president", "net_hawkish_z", "net_hawkish_z_raw",
+                 "net_hawkish_rob_z", "H_t", "D_t", "n_fiscal_paras", "n_speeches"]
+    bvar_out = os.path.join(processed_dir, "bvar_signal.csv")
+    monthly_df[[c for c in bvar_cols if c in monthly_df.columns]].to_csv(bvar_out, index=False)
+    print(f"Saved: {bvar_out}")
 
     # ── 7. Plots ──────────────────────────────────────────────────────────────
     print("\nGenerating plots...")
@@ -567,9 +655,10 @@ def run():
 
     # ── 9. Summary text ───────────────────────────────────────────────────────
     lines = [
-        "=== DICTIONARY SCORING SUMMARY (v6 — EPU-style paragraph counting) ===",
+        "=== DICTIONARY SCORING SUMMARY (v7 — keyword fiscal filter) ===",
         f"Hawkish terms : {len(hawkish_patterns)}",
         f"Dovish terms  : {len(dovish_patterns)}",
+        f"Fiscal keywords: {len(FISCAL_KEYWORDS)}",
         "",
         f"Total paragraphs : {n_total:,}",
         f"Fiscal paragraphs: {n_fiscal:,} ({n_fiscal/n_total*100:.1f}%)",
