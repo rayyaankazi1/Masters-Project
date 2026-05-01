@@ -474,15 +474,21 @@ def plot_validation(monthly_llm: pd.DataFrame, monthly_dict: pd.DataFrame):
                 f"{bar.get_height():.2f}", ha="center", va="bottom", fontsize=8)
 
     # ── 4. Rolling 6m correlation (full panel) ────────────────────────────────
+    # Pool all presidents, sort by date, compute rolling Pearson using
+    # a manual window to avoid the duplicate-index unstack problem.
     ax = axes[1, 1]
-    full = merged.sort_values("ym_dt").dropna(subset=["net_hawkish_llm_z", "net_hawkish_z"])
-    roll_corr = (
-        full.set_index("ym_dt")[["net_hawkish_llm_z", "net_hawkish_z"]]
-        .rolling(6)
-        .corr()
-        .unstack()["net_hawkish_llm_z"]["net_hawkish_z"]
-        .dropna()
-    )
+    full = merged.sort_values("ym_dt").dropna(subset=["net_hawkish_llm_z", "net_hawkish_z"]).reset_index(drop=True)
+    roll_corr_vals = []
+    roll_corr_idx  = []
+    window = 6
+    for i in range(window - 1, len(full)):
+        w = full.iloc[i - window + 1 : i + 1]
+        if w[["net_hawkish_llm_z", "net_hawkish_z"]].std().min() == 0:
+            continue
+        r = w["net_hawkish_llm_z"].corr(w["net_hawkish_z"])
+        roll_corr_vals.append(r)
+        roll_corr_idx.append(full.iloc[i]["ym_dt"])
+    roll_corr = pd.Series(roll_corr_vals, index=roll_corr_idx).dropna()
     ax.plot(roll_corr.index, roll_corr.values, color="#E91E63", linewidth=1.8)
     ax.axhline(0.65, color="green",  linewidth=1, linestyle="--", alpha=0.7, label="Target ρ=0.65")
     ax.axhline(0,    color="black",  linewidth=0.7, linestyle="--", alpha=0.4)
