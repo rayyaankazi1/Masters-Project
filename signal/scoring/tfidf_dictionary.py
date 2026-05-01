@@ -128,6 +128,14 @@ FISCAL_KEYWORDS = [
     "obra publica",
     "inversion publica",
     "inversion social",
+    # v8 additions — gaps identified vs. BBD audit
+    "emision",        # emisión monetaria — core Milei anti-inflation argument
+    "jubil",          # jubilados, jubilación, jubilarse — largest pension spend
+    "pension",        # pensión, pensiones
+    "salario",        # salario, salarios, salarial — real wage policy
+    "fmi",            # FMI / Fondo Monetario Internacional programme targets
+    "privatiz",       # privatización, privatizar — Milei state reform agenda
+    "pobreza",        # pobreza, pobres — social spending motivation
 ]
 
 # ── Negation detection ────────────────────────────────────────────────────────

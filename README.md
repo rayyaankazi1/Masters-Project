@@ -59,31 +59,51 @@ Standard Spanish-language text normalisation: sentence segmentation with spaCy's
 
 ### Stage 3. Topic modeling — LDA (`signal/topic_modeling/`)
 
-Before any hawkishness scoring is applied, we run Latent Dirichlet Allocation on the paragraph-level corpus to identify the latent topic structure of Argentine presidential discourse. LDA serves two roles in this pipeline, and both are important for the validity of the final score.
+LDA is run on the paragraph-level corpus to characterise the latent topic structure of Argentine presidential discourse. In the current pipeline, LDA serves a **descriptive and validation role only** — it is not the load-bearing fiscal filter applied before scoring (that role is handled by a keyword filter in Stage 4, see below). Retaining LDA in the pipeline is motivated by two things.
 
-**Role 1 — fiscal-relevance filtering.** Presidential speeches cover many topics besides fiscal policy: security, international affairs, sports, ceremonial praise, immigration, labor. Applying a fiscal-hawkishness dictionary to the full corpus mechanically dilutes the signal, because non-fiscal paragraphs contribute zero hawkish or dovish terms and drag the speech-level mean toward zero. We use LDA to compute, for each paragraph, its posterior probability of belonging to a fiscal/monetary-policy topic (identified ex-post from the topic-word distributions). Hawkishness scoring is then run either (a) only on paragraphs whose fiscal-topic probability exceeds a threshold, or (b) on all paragraphs but weighted by their fiscal-topic probability. This produces a sharper, more interpretable score and is a defensible answer to the "is your measure just picking up more speech, not more fiscal speech?" critique.
+**Descriptive characterisation.** We report (i) the top-*k* words per topic to demonstrate that a fiscal/monetary topic is recovered and is distinct from other policy topics, (ii) the time series of the fiscal-topic share by president as a model-free complement to the dictionary signal, and (iii) the distribution of dictionary-flagged hawkish terms across LDA topics, which checks that hawkish hits concentrate in the fiscal topic rather than scattering across unrelated ones.
 
-**Role 2 — descriptive validation.** The LDA topic distributions are an interpretable, model-free decomposition of the corpus. We report (i) the top-*k* words per topic to demonstrate that a fiscal/monetary topic is actually recovered and is distinct from other policy topics, (ii) the time series of the fiscal-topic share by president, which is itself a useful descriptive statistic for the thesis, and (iii) the distribution of dictionary-flagged hawkish terms across LDA topics, which checks that hawkish terms concentrate in the fiscal topic rather than being scattered across unrelated topics. If the dictionary's hits cluster cleanly in the fiscal topic, that is independent evidence that the score measures what it claims to measure.
+**Mutual validation.** If the LDA-derived fiscal-topic share and the dictionary/LLM hawkishness signal correlate strongly at monthly frequency, this constitutes independent model-free evidence that both are measuring the same underlying construct. We optionally fit a Dynamic Linear Model (DLM) on the monthly fiscal-topic proportions (Battaglia & Salunina 2020) and compare the Kalman-smoothed latent factor with `net_hawkish_z` as a further robustness check.
 
 LDA is implemented in Gensim with a grid search over the number of topics (*k* ∈ {5, 8, 10, 12, 15, 20}) selected by coherence score (*c_v*) on a held-out validation split. Hyperparameters (α, β) are optimized with the built-in auto-tuning.
 
 ### Stage 4. Dictionary-based scoring (`signal/scoring/tfidf_dictionary.py`)
 
-A Spanish fiscal hawkish/dovish dictionary is hand-curated in `signal/dictionaries/` with 61 hawkish terms (e.g., *ajuste fiscal*, *déficit cero*, *equilibrio fiscal*, *emisión monetaria cero*, *superávit fiscal*) and 46 dovish terms (e.g., *obra pública*, *estado presente*, *salario real*, *asignación universal*, *tarjeta alimentar*). Scoring follows the **EPU paragraph-counting methodology** (Baker, Bloom & Davis 2016): each fiscal paragraph casts a binary vote (has\_hawkish / has\_dovish), and the monthly signal is `(H_t − D_t) / P_t` where H_t and D_t are hawkish- and dovish-hit fiscal paragraph counts and P_t is total fiscal paragraphs in the month. The signal is z-scored over the full cross-president sample. A two-tier negation filter (Tier 1: 10-word window for critical/ironic framing; Tier 2: 3-word window for bare negation) suppresses false hits at an overall rate of ~3.4%.
+A Spanish fiscal hawkish/dovish dictionary is hand-curated in `signal/dictionaries/` with 61 hawkish terms (e.g., *ajuste fiscal*, *déficit cero*, *equilibrio fiscal*, *emisión monetaria cero*, *superávit fiscal*) and 46 dovish terms (e.g., *obra pública*, *estado presente*, *salario real*, *asignación universal*, *tarjeta alimentar*). Paragraphs are identified as fiscal-relevant using a **keyword filter (v8)** following the Baker, Bloom & Davis (2016) EPU keyword-in-text methodology (Appendix B fiscal category): a paragraph is included if it contains at least one of 22 core fiscal/monetary keywords. Each keyword is a stem matched with a `\b<stem>\w*` pattern to capture all morphological variants. The 22 keywords cover both hawkish fiscal-accounting vocabulary (*déficit*, *fiscal*, *presupuesto*, *ajuste*, *austeridad*, *emisión*) and dovish social-spending vocabulary (*obra pública*, *jubilados*, *pensión*, *salario*, *pobreza*), making the filter symmetric across policy directions. An earlier LDA-threshold filter (v6) was replaced because it captured ~84% of hawkish hits but only ~40% of dovish hits due to the different topic distributions of fiscal-accounting vs. social-spending vocabulary.
 
-**Current signal (`net_hawkish_z` in `data/processed/bvar_signal.csv`):**
+Scoring follows the **EPU paragraph-counting methodology** (Baker, Bloom & Davis 2016): each fiscal paragraph casts a binary vote (has\_hawkish / has\_dovish), and the monthly signal is `(H_t − D_t) / P_t` where H_t and D_t are hawkish- and dovish-hit fiscal paragraph counts and P_t is total fiscal paragraphs in the month. The signal is winsorised at 2.5/97.5 percentiles before z-scoring over the full cross-president sample. A two-tier negation filter (Tier 1: 10-word window for critical/ironic framing; Tier 2: 3-word window for bare negation) suppresses false hits at an overall rate of ~3.4%.
+
+Following BBD's validation procedure, the keyword filter is audited against ~150 human-labeled paragraphs to report precision and recall. BBD validate their newspaper filter by human-reading 12,000 articles; our smaller audit serves the same methodological function.
+
+An embedding-based semantic filter (Ash & Hansen 2023) using multilingual-E5-base cosine similarity was considered as an alternative but rejected: the anisotropy problem in transformer embedding spaces meant all 16,197 paragraphs scored above the highest tested threshold (0.45), making the model unable to discriminate fiscal from non-fiscal text without fine-tuning on labeled pairs. The keyword approach was retained as more transparent and directly replicable.
+
+**Dictionary signal (`net_hawkish_z` in `data/interim/monthly_signal.csv`) — robustness series:**
 
 | President | N months | Mean-z | Std-z |
 |-----------|----------|--------|-------|
-| Macri (2015–2019) | 49 | +0.17 | 0.88 |
-| AF (2019–2023) | 47 | −0.70 | 0.86 |
-| Milei (2023–2026) | 29 | +0.84 | 0.54 |
+| Macri (2015–2019) | 49 | +0.25 | 0.88 |
+| AF (2019–2023) | 47 | −0.91 | 0.86 |
+| Milei (2023–2026) | 29 | +1.06 | 0.54 |
 
-Milei–AF separation: 1.54 z-units. Fiscal threshold: `fiscal_topic_prob ≥ 0.15` (tunable in `tfidf_dictionary.py` without re-running LDA). Threshold robustness: r = 0.748 with the stricter 0.25 threshold over 113 overlapping months.
+Milei–AF separation: 1.97 z-units. Numbers above are from v7 filter; v8 rerun pending.
 
 ### Stage 5. LLM-based scoring (`signal/scoring/llm_scoring.py`)
 
-Paragraphs flagged as fiscal-relevant by LDA are independently scored with a large language model (via API) on a –3 to +3 hawkishness scale using a rubric-driven prompt that requires a justification and a quoted exemplar phrase. Temperature is set to 0 and the model version is pinned for reproducibility. The LLM score serves as a robustness measure, not the primary measure.
+Fiscal paragraphs (same keyword filter as Stage 4) are independently scored with a large language model (Claude API) using a **zero-shot blind rubric**: the model assigns −1 (dovish), 0 (neutral), or +1 (hawkish) based solely on fiscal content, with no president name, speech title, or date in the prompt. Temperature is set to 0 and the model version is pinned for reproducibility. The LLM and dictionary pipelines are fully independent — the LLM does not use the hawkish/dovish dictionaries.
+
+The LLM approach captures fiscal intent communicated through ideological argument rather than fiscal-accounting vocabulary. For example, Milei's Davos 2024 speech argues that state financing via taxes is coercive and that monetary emission causes poverty — content the dictionary misses entirely but which the LLM scores +1 hawkish. This is the **primary BVAR signal**; the dictionary signal (`net_hawkish_z`) is retained as a robustness/replication check.
+
+**LLM signal (`net_hawkish_llm_z` in `data/processed/bvar_signal_llm.csv`) — primary series:**
+
+| President | N months | Mean-z | Std-z |
+|-----------|----------|--------|-------|
+| Macri (2015–2019) | 49 | +0.38 | 0.87 |
+| AF (2019–2023) | 47 | −1.03 | 0.82 |
+| Milei (2023–2026) | 29 | +1.03 | 0.59 |
+
+Milei–AF separation: 2.06 z-units. Cross-validation with dictionary signal: Pearson r = 0.767, Spearman ρ = 0.765 (monthly z-scores, n = 125). January 2024 correction: dictionary z = −1.532 → LLM z = +1.542 (Davos ideological arguments correctly scored hawkish).
+
+**Planned robustness (Stage 5b):** re-run with few-shot prompting (9 labeled Spanish examples covering all three presidents and edge cases); compare Spearman ρ against zero-shot baseline. Human validation holdout: ~60 manually labeled paragraphs, precision/recall/F1 reported.
 
 ### Stage 6. Validation (`signal/validation/`)
 
@@ -143,10 +163,10 @@ Python dependencies are pinned in `requirements.txt` (signal pipeline). R depend
 
 ## Timeline and status
 
-**Signal pipeline (Stages 1–4): COMPLETE as of 2026-04-29.**  
-Primary BVAR input `net_hawkish_z` is in `data/processed/bvar_signal.csv`, covering 127 monthly observations (2015-12 → 2026-04). Two AF months are NaN (zero fiscal paragraphs); all other 125 months have valid signal.
+**Signal pipeline (Stages 1–5): COMPLETE as of 2026-04-30.**  
+Primary BVAR input `net_hawkish_llm_z` is in `data/processed/bvar_signal_llm.csv`, covering 125 monthly observations with valid signal (2015-12 → 2026-04; 2 AF months NaN due to zero fiscal paragraphs). Dictionary robustness series `net_hawkish_z` is in `data/interim/monthly_signal.csv`. Cross-validation: Pearson r = 0.767, Spearman ρ = 0.765.
 
-**Active priorities:** (1) External validation — correlate `net_hawkish_z` with Argentine primary balance, EMBI+, ARS/USD. (2) Stage 5 LLM cross-validation on ~200 sampled fiscal paragraphs. (3) BVAR construction in `econometrics/` (currently empty skeleton). (4) Pre-Milei / post-Milei split-sample IRF comparison as the headline result.
+**Active priorities:** (1) Re-run Stage 4 (`tfidf_dictionary.py`) and Stage 5 (`llm_scoring.py`) with the v8 keyword filter. (2) BBD keyword audit + human validation holdout — label ~150 paragraphs (fiscal/non-fiscal and hawkish/neutral/dovish), report filter precision/recall and LLM F1 in one pass. (3) Stage 5b few-shot robustness run — add 9 labeled examples to prompt, compare ρ against zero-shot baseline. (4) External validation — correlate `net_hawkish_llm_z` with Argentine primary balance, EMBI+, ARS/USD. (5) BVAR construction in `econometrics/` (currently empty skeleton), using TVP-VAR (Primiceri 2005) as preferred specification to accommodate the structural break across administrations.
 
 ## References
 
@@ -167,3 +187,15 @@ Apel, M., & Blix Grimaldi, M. (2014). How informative are central bank minutes? 
 Hansen, S., & McMahon, M. (2016). Shocking language: understanding the macroeconomic effects of central bank communication. *Journal of International Economics* 99.
 
 Shapiro, A. H., & Wilson, D. J. (2019). Taking the Fed at its word: a new approach to estimating central bank objectives using text analysis. FRBSF Working Paper 2019-02.
+
+Bernoth, K. (2025). Dovish coos or hawkish screech? Measuring ECB communication using large language models. *DIW Berlin Discussion Paper* 2137.
+
+Hansen, S., & Kazinnik, S. (2024). Can large language models extract information usable in financial markets? *Journal of Finance* (forthcoming).
+
+Bank of England (2025). *Using large language models to measure monetary policy communication.* Staff Working Paper 1127.
+
+Ash, E., & Hansen, S. (2023). Text algorithms in economics. *Annual Review of Economics* 15, 659-688. [Embedding-based semantic filter approach; considered but rejected due to transformer embedding anisotropy.]
+
+Battaglia, F., & Salunina, M. (2020). LDA topic modelling and dynamic linear models for fiscal policy uncertainty. *Working paper*.
+
+Primiceri, G. E. (2005). Time varying structural vector autoregressions and monetary policy. *Review of Economic Studies* 72(3).

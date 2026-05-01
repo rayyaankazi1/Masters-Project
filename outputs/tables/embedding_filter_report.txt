@@ -1,0 +1,105 @@
+================================================================================
+EMBEDDING FISCAL FILTER REPORT
+Model: intfloat/multilingual-e5-base
+Seeds: 20 phrases
+Paragraphs: 16,197
+Chosen threshold: 0.35
+================================================================================
+
+THRESHOLD SWEEP (treating keyword filter as reference)
+(Precision/Recall/F1 are agreement metrics, not ground-truth accuracy)
+
+ Threshold   Fiscal (emb)   Agree (both)   Only emb    Only kw   Precision    Recall      F1
+------------------------------------------------------------------------------------------
+      0.25         16,197          2,920     13,277          0       0.180     1.000   0.305
+      0.28         16,197          2,920     13,277          0       0.180     1.000   0.305
+      0.30         16,197          2,920     13,277          0       0.180     1.000   0.305
+      0.32         16,197          2,920     13,277          0       0.180     1.000   0.305
+      0.35         16,197          2,920     13,277          0       0.180     1.000   0.305
+      0.38         16,197          2,920     13,277          0       0.180     1.000   0.305
+      0.40         16,197          2,920     13,277          0       0.180     1.000   0.305
+      0.45         16,197          2,920     13,277          0       0.180     1.000   0.305
+
+President       Total    Keyword  Emb (t=0.35)    Both   Only emb   Only kw
+---------------------------------------------------------------------------
+Macri           5,247        452         5,247     452      4,795         0
+AF              6,264        825         6,264     825      5,439         0
+Milei           4,686      1,643         4,686   1,643      3,043         0
+
+================================================================================
+TOP 10 PARAGRAPHS: caught by EMBEDDING but MISSED by keyword filter
+(fiscal_sim_score ≥ 0.35, is_fiscal = False)
+================================================================================
+
+[AF | 2023-12 | sim=0.877]
+Para garantizar un desarrollo justo y federal, a lo largo de todo nuestro mandato,
+transferimos recursos a las provincias. Hace apenas una semana transferimos 230.000
+millones de pesos, destinados al pago de sueldos y aguinaldos. El gobierno entrante
+encontrará en la caja del Estado Nacional más de1 billón de pesos. La ciudadanía merece
+saberlo, porque cada peso le pertenece.
+
+[Milei | 2024-12 | sim=0.875]
+Esto es un atributo de la naturaleza humana, pero es especialmente cierto para la labor
+presidencial. A nuestro gobierno le ha sido encomendada la enorme tarea de estabilizar un
+presente caótico, al borde del abismo, corrigiendo de una buena vez y para siempre las
+aberraciones del pasado. Hoy, a diferencia de lo que ocurriera hace un año, el Estado
+ahora poderle devolverle lo suyo a la sociedad en
+
+[Milei | 2025-10 | sim=0.874]
+Que todos, cada día, puedan comprar, vender, contratar, ahorrar, invertir y trabajar más y
+más libremente. Esto incentiva tanto el ahorro como la inversión. Porque si dejo de
+sacarte algo que antes te sacaba, contás con más capital que antes para disponer como
+quieras. Hay una frase de un economista libertario que señala que, cuando la plata no te
+alcanza, es porque te sobra Estado. Esto es intere
+
+[AF | 2021-10 | sim=0.873]
+• El plan TE SUMO rebaja cargas patronales para las Pymes y subsidia parte del salario
+para las empresas que tomen jóvenes, de entre 18 y 24 años. • La Ley de ECONOMIA DEL
+CONOCIMIENTO reduce cargas patronales en un 70% para todo el sector, y también elimina
+retenciones a las exportaciones • Para el Norte Grande, San Juan y Mendoza eliminamos
+aportes patronales, por 3 años, en todos los sectores p
+
+[AF | 2021-05 | sim=0.873]
+El Estado Nacional seguirá acompañando, a quienes más lo necesiten, como siempre lo hemos
+hecho. A las empresas y trabajadores afectados los acompañaremos, con el Programa de
+Recuperación Productiva; aumentaremos el salario complementario realizando una inversión
+de 66.000 millones de pesos. También ffortaleceremos el apoyo a las familias, con la
+Tarjeta Alimentar llegaremos a casi 4 millones de n
+
+[AF | 2022-04 | sim=0.872]
+GUZMÁN.- Buenas tardes a todos y todas, buenas tardes presidente, en el día de hoy estamos
+anunciando un conjunto de medidas, que en el contexto de la recuperación económica, que
+viene viendo la Argentina, y de circunstancias que han sido excepcionales, en el contexto
+internacional buscan preservar el poder adquisitivo de los ingresos y garantizar un rumbo
+de equidad económica y social.
+
+[AF | 2022-06 | sim=0.871]
+A pesar de la situación económica y social - derivada de un endeudamiento insostenible, a
+pesar de la pandemia del COVID-19, actualizamos nuestra Contribución Determinada a Nivel
+Nacional. La aumentamos, en un 27,7%, respecto de la ambición anterior, alineado con los
+objetivos, de París.
+
+[Milei | 2025-06 | sim=0.870]
+Para tener un panorama más concreto de dónde está parado nuestro Gobierno y dónde está
+parada la oposición - respecto a la economía - los opositores nos están corriendo con que
+las importaciones no paran de subir y están demasiado altas, pero la realidad es que el
+70% de dichas importaciones son bienes de capital, accesorios de bienes y capital, insumos
+productivos y materias primas para capitaliz
+
+[AF | 2020-03 | sim=0.870]
+Yo les pido a todos que entiendan que estamos viviendo un momento de excepción, y que en
+verdad no tenemos que caer en el falso dilema de es la saludo o es la economía, a mí
+alguna vez me tocó llegar al Gobierno con Néstor Kirchner y hacernos cargo de un país que
+el año previo había tenido una caída del Producto Bruto Interno superior al once por
+ciento, y nos pusimos a trabajar y levantamos la ec
+
+[AF | 2021-03 | sim=0.869]
+Preservamos el ingreso de jubiladas y jubilados aumentando sus haberes y otorgándoles
+bonos adicionales. Lo mismo hicimos con titulares de asignaciones y asalariados de menores
+ingresos en relación de dependencia. A todos ellos se les congelaron las tarifas de los
+servicios públicos.
+
+================================================================================
+TOP 10 PARAGRAPHS: caught by KEYWORD filter but MISSED by embedding
+(fiscal_sim_score < 0.35, is_fiscal = True)
+================================================================================
