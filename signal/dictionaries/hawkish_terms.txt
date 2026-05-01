@@ -89,6 +89,12 @@ reduccion del estado
 reforma del estado
 shock de oferta
 
+# ── Fiscal cleanup vocabulary ─────────────────────────────────────────────────
+# saneamiento (fiscal/monetary cleanup) — cross-president term: Macri used it
+# for his early stabilisation program, Milei for shock therapy.
+# 51 hits: 22 Macri / 9 AF / 20 Milei — genuine cross-president validity.
+saneamiento
+
 # ── Macri-era gradualismo / anti-inflation vocabulary ────────────────────────
 # Corpus audit: Macri uses verb constructions where our noun phrases miss him.
 # E.g. "bajar la inflación, los impuestos, el déficit, el gasto público" scores

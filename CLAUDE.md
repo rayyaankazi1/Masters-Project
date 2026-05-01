@@ -20,10 +20,10 @@ Stage 2: Raw corpus     data/raw/speeches_raw.csv
            ↓
 Stage 3: LDA            signal/topic_modeling/lda.py
            ↓  paragraphs_lda.csv (fiscal_topic_prob per paragraph)
-Stage 4: Dictionary     signal/scoring/tfidf_dictionary.py   ← CURRENT STAGE
+Stage 4: Dictionary     signal/scoring/tfidf_dictionary.py
            ↓  paragraphs_scored.csv, speeches_scored.csv, monthly_signal.csv
-Stage 5: LLM scoring    (not yet built — for cross-validation)
-           ↓
+Stage 5: LLM scoring    signal/scoring/llm_scoring.py   ← CURRENT STAGE
+           ↓  paragraphs_llm_scored.csv, monthly_signal_llm.csv, bvar_signal_llm.csv
 Stage 6: External valid (not yet built — correlate with primary balance, EMBI+)
            ↓
 Stage 7: BVAR           econometrics/ (not yet built)
@@ -42,8 +42,13 @@ Stage 7: BVAR           econometrics/ (not yet built)
 | `data/interim/monthly_signal.csv` | **Primary BVAR input** — monthly signal, 127 rows |
 | `signal/dictionaries/hawkish_terms.txt` | 61 hawkish terms (v6) |
 | `signal/dictionaries/dovish_terms.txt` | 46 dovish terms (v6) |
-| `signal/scoring/tfidf_dictionary.py` | Main scoring pipeline (v6 — EPU-style) |
-| `outputs/tables/scoring_summary.txt` | Last run summary statistics |
+| `signal/scoring/tfidf_dictionary.py` | Main scoring pipeline (v7 — EPU-style, keyword filter) |
+| `signal/scoring/llm_scoring.py` | Stage 5 — LLM paragraph scoring (Claude API) |
+| `data/interim/monthly_signal_llm.csv` | Monthly LLM signal (after running Stage 5) |
+| `data/processed/bvar_signal_llm.csv` | Combined LLM + dictionary BVAR-ready output |
+| `data/interim/llm_scores_checkpoint.json` | Checkpoint for resume (auto-generated) |
+| `outputs/tables/scoring_summary.txt` | Dictionary scoring audit |
+| `outputs/tables/llm_scoring_summary.txt` | LLM scoring audit + cross-validation stats |
 
 ---
 
@@ -147,6 +152,47 @@ Key sections: expansionary fiscal stance, social spending/redistribution, AF-era
 
 ---
 
+## LLM Scoring Pipeline — Stage 5 Design Notes
+
+### Why LLM-primary is methodologically sound
+
+The dictionary signal has a structural limitation with ideological/programmatic speeches:
+Milei's most important speeches (Davos Jan 2024, WEF, UN General Assembly) communicate
+fiscal stance through first-principles argument ("state financing via taxes is coercive",
+"monetary emission is the root of poverty") rather than fiscal-accounting vocabulary
+("deficit cero", "superavit primario"). The dictionary misses these paragraphs entirely.
+
+The LLM approach evaluates fiscal *intent* from context. Crucially, **the model is never
+told who is speaking** — no president name, no speech title, no date in the prompt. It
+scores what the paragraph says, not who said it. This avoids the motosierra/licuadora
+circularity problem: we cannot get a self-fulfilling Milei signal by omitting his identity.
+
+### January 2024 — expected LLM fix
+
+Dictionary scores both fiscal paragraphs as: H=0, D=1 → signal = −0.5 → very negative z.
+- Para 4633: "...la justicia social...el Estado se financia a través de impuestos...de
+  manera coactiva" → LLM should score +1 (hawkish: critiquing tax-funded state)
+- Para 4654: "Con herramientas como la emisión monetaria, el endeudamiento, los subsidios..."
+  → LLM should score +1 (hawkish: criticising monetary emission, subsidies)
+Expected LLM signal = (2−0)/2 = +1.0 → strongly positive z.
+
+### Cross-president validity
+
+The same rubric is applied to all 2,920 fiscal paragraphs across all three presidents.
+Macri's "ordenar las cuentas" speeches, AF's social spending speeches, and Milei's
+ideological arguments all pass through the same blind LLM judge.
+
+### Relationship to dictionary signal
+
+- Primary BVAR input: `net_hawkish_llm_z` (LLM signal)
+- Robustness / replication check: `net_hawkish_z` (dictionary signal)
+- Cross-validation: Spearman ρ between monthly z-scores. Target > 0.65.
+- If ρ ≥ 0.65: dictionary validates LLM — both signals are measuring the same thing
+- If ρ < 0.65: investigate divergences in `llm_scoring_summary.txt`; likely months where
+  dictionary vocabulary gaps or LDA filter dropped content the LLM correctly scored
+
+---
+
 ## What Still Needs Doing (Priority Order)
 
 ### Immediate (before BVAR)
@@ -172,7 +218,13 @@ Key sections: expansionary fiscal stance, social spending/redistribution, AF-era
 
 ### Medium term
 
-4. **Stage 5: LLM cross-validation** — Sample ~200 fiscal paragraphs, have Claude classify as hawkish/dovish/neutral, compare with dictionary scores. Target Spearman ρ > 0.65.
+4. **Stage 5: LLM scoring** — Script built at `signal/scoring/llm_scoring.py`. Run:
+   ```bash
+   export ANTHROPIC_API_KEY="sk-ant-..."
+   python signal/scoring/llm_scoring.py --dry-run   # cost estimate: ~$0.82
+   python signal/scoring/llm_scoring.py              # full run, ~292 API calls
+   ```
+   Script is checkpoint/resume capable. Primary output: `monthly_signal_llm.csv` with `net_hawkish_llm_z`. Cross-validation target: Spearman ρ > 0.65 vs dictionary signal.
 
 5. **BVAR construction (Stage 7)** — `econometrics/` folder is empty skeleton. Variables needed: `net_hawkish_z` (fiscal signal), primary balance/GDP, inflation, output gap, EMBI+ spread. Monthly frequency, 2015M12–2026M03 (127 observations). Identification via sign restrictions or Cholesky.
 

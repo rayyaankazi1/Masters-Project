@@ -67,6 +67,11 @@ aporte extraordinario
 tarjeta alimentar
 programa de recuperacion
 
+# ── Social solidarity vocabulary ─────────────────────────────────────────────
+# solidaridad — core Peronist/AF framing of social spending as solidarity
+# 195 hits: 32 Macri / 157 AF / 6 Milei — strongly AF-anchored.
+solidaridad
+
 # ── Macri-era dovish framing ──────────────────────────────────────────────────
 # Corpus audit added: asignacion universal (AUH child allowance — signature
 # Macri-era social transfer, 16 hits in fiscal zero-hit paragraphs) and
