@@ -1,7 +1,7 @@
 # Masters-Project — Claude Handoff Document
-**Last updated:** 2026-05-01 (v8 keyword filter)  
+**Last updated:** 2026-05-02 (v8 rerun complete)  
 **Author:** Rayyaan Kazi (BSE Master's student)  
-**Project:** Fiscal hawkishness NLP signal from Argentine presidential speeches as input to a Bayesian Structural VAR
+**Project:** Fiscal hawkishness NLP signal from Argentine presidential speeches as input to Local Projections (Jordà 2005) — supervisor-recommended identification strategy
 
 ---
 
@@ -17,25 +17,27 @@ Construct a monthly fiscal hawkishness signal from Argentine presidential speech
 ## Pipeline Overview
 
 ```
-Stage 1: Scraping       signal/scraping/scraper.py
+Stage 1: Scraping       signal/scraping/scraper.py                    ✓ COMPLETE
            ↓
-Stage 2: Raw corpus     data/raw/speeches_raw.csv
+Stage 2: Raw corpus     data/raw/speeches_raw.csv                     ✓ COMPLETE
            ↓
-Stage 3: LDA            signal/topic_modeling/lda.py
+Stage 3: LDA            signal/topic_modeling/lda.py                  ✓ COMPLETE
            ↓  paragraphs_lda.csv (validation/narrative only — NOT load-bearing filter)
-Stage 4: Dictionary     signal/scoring/tfidf_dictionary.py
+Stage 4: Dictionary     signal/scoring/tfidf_dictionary.py            ✓ COMPLETE (v8)
            ↓  paragraphs_scored.csv, speeches_scored.csv, monthly_signal.csv
-Stage 4b: Keyword audit  signal/validation/   ← NEXT (label ~150 paras, BBD audit)
+Stage 4b: Keyword audit  signal/validation/                           ← PENDING (label ~150 paras)
            ↓  filter precision/recall report
-Stage 5: LLM scoring    signal/scoring/llm_scoring.py   ← NEEDS RERUN (v8 filter)
+Stage 5: LLM scoring    signal/scoring/llm_scoring.py                 ✓ COMPLETE (v8, $1.09)
            ↓  paragraphs_llm_scored.csv, monthly_signal_llm.csv, bvar_signal_llm.csv
-Stage 5b: Few-shot      signal/scoring/llm_scoring.py --few-shot   ← PENDING
+Stage 5b: Few-shot      signal/scoring/llm_scoring.py --few-shot      ← PENDING
            ↓  few-shot robustness run (compare ρ with zero-shot)
-Stage 5c: Validation    signal/validation/   ← PENDING
+Stage 5c: Validation    signal/validation/                            ← PENDING (blocking)
            ↓  ~60 human-labeled paragraphs, precision/recall/F1 vs LLM
-Stage 6: External valid (not yet built)
+Stage 6: External valid (not yet built)                               ← PENDING
            ↓  correlate net_hawkish_llm_z with primary balance, EMBI+, ARS/USD
-Stage 7: BVAR           econometrics/ (not yet built)
+Stage 7: Local Projections  econometrics/                             ← PENDING (not yet built)
+           ↓  Jordà (2005) LP-IRFs, regime heterogeneity via interaction term
+           ↓  supervisor-recommended; replaces BVAR-with-dummy approach
 ```
 
 ---
@@ -56,7 +58,7 @@ Stage 7: BVAR           econometrics/ (not yet built)
 | `data/processed/bvar_signal_llm.csv` | Clean LLM + dictionary signal, BVAR-ready |
 | `signal/dictionaries/hawkish_terms.txt` | 61 hawkish terms (v6) — used in Stage 4 only |
 | `signal/dictionaries/dovish_terms.txt` | 46 dovish terms (v6) — used in Stage 4 only |
-| `signal/scoring/tfidf_dictionary.py` | Stage 4 scoring pipeline (v7 — keyword fiscal filter) |
+| `signal/scoring/tfidf_dictionary.py` | Stage 4 scoring pipeline (v8 — keyword fiscal filter) |
 | `signal/scoring/llm_scoring.py` | Stage 5 LLM paragraph scoring (Claude API) |
 | `outputs/figures/llm_vs_dict_signal.png` | 4-panel LLM vs dictionary validation chart |
 | `outputs/tables/scoring_summary.txt` | Dictionary scoring audit |
@@ -238,73 +240,77 @@ Without this, the thesis is vulnerable to "how do you know the LLM is doing what
 - **Winsorisation:** 2.5/97.5 pct before z-scoring
 - **Two-tier negation:** Tier 1 strong (10-word), Tier 2 weak (3-word)
 - **Direction-aware elimination:** suppresses dovish hits only
-- **Negation suppression rate:** ~3.4% overall (from v7 run; will update after v8 rerun)
+- **Negation suppression rate (v8):** Macri 2.4% H / 2.4% D; AF 0.0% H / 2.7% D; Milei 2.4% H / 10.4% D. Milei's high dovish negation (10.4%) reflects his frequent use of "eliminar obra pública / subsidios" framing — direction-aware negation correctly suppresses these.
 
 ### Stage 5: llm_scoring.py
 
 ```bash
 cd ~/Desktop/Masters-Project
 source .venv/bin/activate
-export ANTHROPIC_API_KEY="sk-ant-..."
+# On zsh/fish, prefix the key inline rather than using export:
+ANTHROPIC_API_KEY="sk-ant-..." python signal/scoring/llm_scoring.py --dry-run
+ANTHROPIC_API_KEY="sk-ant-..." python signal/scoring/llm_scoring.py
 
-python signal/scoring/llm_scoring.py --dry-run     # cost estimate (~$0.82)
-python signal/scoring/llm_scoring.py               # full run, ~292 API calls
-python signal/scoring/llm_scoring.py --model claude-sonnet-4-6  # higher accuracy
+# v8 run stats: 3,904 paragraphs, 391 batches, ~$1.09, ~28 min
+# Higher accuracy model (optional):
+ANTHROPIC_API_KEY="sk-ant-..." python signal/scoring/llm_scoring.py --model claude-sonnet-4-6
 ```
 
-Checkpoint/resume: `data/interim/llm_scores_checkpoint.json` — delete to rescore from scratch.
+Checkpoint/resume: `data/interim/llm_scores_checkpoint.json` — delete to rescore from scratch. For a clean rescore (e.g. filter change), delete checkpoint before running.
 
 ---
 
 ## What Still Needs Doing (Priority Order)
 
-### Immediate (v8 filter rerun)
+### BLOCKING — required before thesis defense
 
-1. **Re-run Stage 4** — `python signal/scoring/tfidf_dictionary.py` — regenerates `paragraphs_scored.csv` with v8 `is_fiscal` flags. Check new fiscal paragraph counts by president vs v7 numbers above.
+1. **Human validation** ← most important remaining task
+   - Label ~60 paragraphs (20 per class: hawkish/neutral/dovish), stratified by president
+   - Run confusion matrix and compute precision/recall/F1 vs LLM scores
+   - Break down accuracy by president — systematic bias for Milei would be a problem; random error is defensible via aggregation argument
+   - If zero-shot F1 is low (~0.6), frame as: consistent with Hansen & Kazinnik (2024) and BoE SWP 1127; aggregation to monthly level attenuates noise; LLM-dictionary ρ = 0.835 is primary evidence
+   - Place labeled examples in `signal/validation/human_labels.csv`
 
-2. **Re-run Stage 5** — Delete `data/interim/llm_scores_checkpoint.json`, then `python signal/scoring/llm_scoring.py --dry-run` to check cost, then full run. The checkpoint mechanism will only score newly added paragraphs if the checkpoint is kept (but safer to delete and rescore fully for consistency). Expected cost ~$0.90–$1.10 given more fiscal paragraphs from v8.
+2. **Fix scoring_summary.txt header** — still says "v7" in the output title line. One-line fix in the script's summary text before next rerun, or edit the file directly.
 
-### Signal robustness (complete before BVAR)
+### Signal robustness (complete before econometrics)
 
-3. **BBD keyword audit + human validation** — Label ~150 paragraphs as (a) fiscal/non-fiscal and (b) hawkish/neutral/dovish in one pass (~2–3 hours). This delivers two things simultaneously: the BBD-style filter precision/recall table (Baker, Bloom & Davis 2016 validate their keyword filter with a human audit of 12,000 articles), and the LLM classification accuracy table (precision/recall/F1 vs human labels). Both are required for a credible methodology section. Place output in `signal/validation/human_labels.csv`.
+3. **Few-shot robustness run** — Add 9 labeled examples (3 per class) to prompt in `llm_scoring.py`. Delete checkpoint. Re-run (~$1.09). Compare monthly ρ against zero-shot baseline (target ρ > 0.85). Candidate examples already identified in the "Zero-shot vs few-shot design" section below.
 
-4. **Few-shot robustness run** — Add 9 labeled examples to prompt in `llm_scoring.py`. Delete checkpoint. Re-run. Compare monthly ρ between zero-shot and few-shot (target ρ > 0.85). Zero-shot is the primary result; few-shot is the robustness check (Bank of England 2025 SWP 1127 validates this approach).
+4. **Ideology paragraph spot-check** — 1,593 paragraphs still excluded (Milei: 1,106). Sample ~50 Milei ideology-only paragraphs post-v8 to verify `emision` keyword now catches the main false negatives. If >20% of remaining excluded Milei paragraphs score ±1, reconsider inclusion.
 
-5. **Ideology paragraph test** — Score ~150 ideology-only paragraphs (stratified by president) with LLM. If >20% score ±1 for Milei, consider including them. Costs ~$0.04. Note: v8 `emision` keyword will now catch some of these automatically.
+5. **Sentence-level robustness** — Split fiscal paragraphs into sentences, score with LLM, compare monthly aggregations. If ρ > 0.85 vs paragraph-level, document and move on (Gentzkow, Kelly & Taddy 2019).
 
-6. **Sentence-level robustness** — Split fiscal paragraphs into sentences, score with LLM, compare monthly aggregations. If ρ > 0.85 vs paragraph-level, document and move on (Gentzkow, Kelly & Taddy 2019 recommend checking document unit sensitivity).
+### Data issues to document explicitly
+
+6. **Two missing AF months** — January 2020 and November 2023 have zero fiscal paragraphs and are absent from the LLM signal. Must state explicitly in the thesis data section: whether these are excluded, imputed, or treated as structural zeros. Currently undocumented.
+
+7. **February 2026 anomaly** — Milei has P_t=1 (single fiscal paragraph that month: "saldando una deuda histórica" — ceremonial speech about San Martín's sword, caught by `deuda` keyword). Signal = −0.113z, anomalously low. Flag in data as a thin-month false positive. Consider adding a P_t threshold (e.g. P_t ≥ 3) below which months are excluded or down-weighted.
 
 ### External validation (Stage 6)
 
-5. **Correlate signal with Argentine macro data:**
-   - Primary balance/GDP (Ministry of Economy) — expect negative correlation with hawkishness
+8. **Correlate signal with Argentine macro data:**
+   - Primary balance/GDP (Ministry of Economy) — expect positive correlation with hawkishness
    - EMBI+ Argentina (JPMorgan) — expect negative correlation (hawkish → lower risk)
    - ARS/USD parallel rate — expect negative correlation (hawkish → peso appreciation)
-   - This is required for the Bernoth-style communication shock identification
 
-6. **Communication shock extraction** — Following Bernoth (2025) Section 5:
-   - Regress `net_hawkish_llm_z` on: inflation, primary balance, EMBI+, lagged signal, president FE
-   - Residual = unexpected fiscal communication shock
-   - This is the BVAR input, not the raw signal
-   - President fixed effects control for level differences across regimes
+### Econometrics (Stage 7) — being handled by group
 
-### BVAR (Stage 7)
-
-7. **BVAR construction** — `econometrics/` folder is empty skeleton.
-   - Variables: fiscal communication shock (residual), primary balance/GDP, inflation (INDEC), output gap, EMBI+ spread, REM inflation expectations
-   - Monthly frequency, 2015M12–2026M03 (~127 observations)
-   - Identification: Cholesky (shock ordered first) following Bernoth (2025)
-   - Consider TVP-VAR (Primiceri 2005) as primary given structural break across presidents
-   - Minnesota prior, p=2 lags (select by marginal likelihood)
+9. **Local projections** — Supervisor-recommended identification strategy (Jordà 2005). Replaces earlier BVAR-with-dummy approach which had contamination problems. For each outcome variable y and horizon h:
+   - `y_{t+h} − y_{t−1} = αh + βh·shock_t + δh·(shock_t × Milei_t) + γh·controls_t + ε_{t+h}`
+   - δh directly estimates the regime difference in IRF at each horizon — clean and interpretable
+   - Newey-West SEs for serial correlation from overlapping horizons
+   - LP-IV using narrative instrument events (Montiel Olea & Plagborg-Møller 2021)
+   - Use `llm_signal_v8.csv` (delivered to group 2026-05-02)
 
 ### Documentation
 
-8. **Git commit** — Run in terminal:
-   ```bash
-   cd ~/Desktop/Masters-Project
-   git add signal/ data/interim/ data/processed/ CLAUDE.md README.md outputs/
-   git commit -m "Stage 5 complete: LLM scoring, zero-shot, rho=0.765, Jan2024 fixed"
-   ```
+10. **Git commit:**
+    ```bash
+    cd ~/Desktop/Masters-Project
+    git add signal/ CLAUDE.md README.md outputs/ paper/
+    git commit -m "v8 complete: LLM+dict rerun, rho=0.835, slides, llm_signal_v8.csv delivered"
+    ```
 
 ---
 
@@ -345,7 +351,11 @@ python signal/scoring/llm_scoring.py             # full run
 - **January 2024:** LLM z = +1.542, Dict z = +0.238 — Davos correctly hawkish in both; LLM stronger
 - **President ordering (LLM v8):** Milei +1.29z > Macri +0.18z > AF −0.98z (gap = 2.27z)
 - **Ideology-only paragraphs (excluded):** 1,593 — Milei 1,106 / AF 369 / Macri 118
-- **Fiscal keyword filter:** 22 keywords v8 (symmetric — BBD 2016 approach; v8 just updated, rerun pending)
+- **Fiscal keyword filter:** 22 keywords v8 (symmetric — BBD 2016 approach; rerun complete 2026-05-02)
+- **Known anomaly:** Feb 2026 Milei P_t=1 (ceremonial speech, `deuda` false positive) → signal = −0.113z; flag as thin month
+- **Missing months:** AF Jan 2020 and Nov 2023 absent (zero fiscal paragraphs); treatment undocumented — must state in thesis
+- **Dead dictionary term:** `actualizacion tarifaria` — zero hits across full corpus; remove or note in audit
+- **Shared signal file:** `llm_signal_v8.csv` at project root — delivered to econometrics group 2026-05-02
 - **LLM model used:** claude-haiku-4-5-20251001, temperature=0
 
 ---

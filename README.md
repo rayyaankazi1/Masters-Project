@@ -81,11 +81,11 @@ An embedding-based semantic filter (Ash & Hansen 2023) using multilingual-E5-bas
 
 | President | N months | Mean-z | Std-z |
 |-----------|----------|--------|-------|
-| Macri (2015–2019) | 49 | +0.25 | 0.88 |
-| AF (2019–2023) | 47 | −0.91 | 0.86 |
-| Milei (2023–2026) | 29 | +1.06 | 0.54 |
+| Macri (2015–2019) | 49 | +0.212 | 0.460 |
+| AF (2019–2023) | 47 | −0.979 | 0.579 |
+| Milei (2023–2026) | 29 | +1.228 | 0.514 |
 
-Milei–AF separation: 1.97 z-units. Numbers above are from v7 filter; v8 rerun pending.
+Milei–AF separation: 2.21 z-units. v8 filter rerun complete 2026-05-02.
 
 ### Stage 5. LLM-based scoring (`signal/scoring/llm_scoring.py`)
 
@@ -95,15 +95,15 @@ The LLM approach captures fiscal intent communicated through ideological argumen
 
 **LLM signal (`net_hawkish_llm_z` in `data/processed/bvar_signal_llm.csv`) — primary series:**
 
-| President | N months | Mean-z | Std-z |
-|-----------|----------|--------|-------|
-| Macri (2015–2019) | 49 | +0.38 | 0.87 |
-| AF (2019–2023) | 47 | −1.03 | 0.82 |
-| Milei (2023–2026) | 29 | +1.03 | 0.59 |
+| President | N months | Mean-z | Std-z | H% / N% / D% |
+|-----------|----------|--------|-------|---------------|
+| Macri (2015–2019) | 49 | +0.179 | 0.622 | 28.8 / 51.6 / 19.6 |
+| AF (2019–2023) | 47 | −0.983 | 0.382 | 7.1 / 41.5 / 51.4 |
+| Milei (2023–2026) | 29 | +1.291 | 0.346 | 72.9 / 26.7 / 0.4 |
 
-Milei–AF separation: 2.06 z-units. Cross-validation with dictionary signal: Pearson r = 0.767, Spearman ρ = 0.765 (monthly z-scores, n = 125). January 2024 correction: dictionary z = −1.532 → LLM z = +1.542 (Davos ideological arguments correctly scored hawkish).
+Milei–AF separation: 2.27 z-units. Cross-validation with dictionary signal: Pearson r = 0.839, Spearman ρ = 0.835 (monthly z-scores, n = 123). January 2024 (Davos): LLM z = +1.542, dictionary z = +0.238 — LLM correctly captures ideological hawkishness that dictionary misses. v8 rerun complete 2026-05-02, cost $1.09, model claude-haiku-4-5-20251001 at temperature=0.
 
-**Planned robustness (Stage 5b):** re-run with few-shot prompting (9 labeled Spanish examples covering all three presidents and edge cases); compare Spearman ρ against zero-shot baseline. Human validation holdout: ~60 manually labeled paragraphs, precision/recall/F1 reported.
+**Pending robustness (Stage 5b):** re-run with few-shot prompting (9 labeled Spanish examples covering all three presidents and edge cases); compare Spearman ρ against zero-shot baseline. Human validation holdout: ~60 manually labeled paragraphs, precision/recall/F1 reported (required before thesis defense).
 
 ### Stage 6. Validation (`signal/validation/`)
 
@@ -129,19 +129,21 @@ Merges the monthly hawkishness signal with macro data: inflation (INDEC IPC Naci
 
 ### Stage 2. Estimation (`econometrics/estimation/`)
 
-Bayesian VAR estimated in R using the `bsvars` / `BVAR` package with Minnesota/Litterman priors, following the specification in Istrefi and Piloiu (2014). Lag length is selected by BIC with DIC as a cross-check; baseline specification uses *p* = 4 lags on monthly data.
+**Primary approach: Local Projections (Jordà 2005)**, recommended by supervisor to replace the earlier BVAR-with-dummy specification. For each outcome variable y and horizon h = 0, 1, ..., H:
+
+`y_{t+h} − y_{t−1} = αh + βh·shock_t + δh·(shock_t × Milei_t) + γh·controls_t + ε_{t+h}`
+
+βh traces the baseline IRF; δh directly estimates the *difference* in response under Milei vs prior presidents. Standard errors are Newey-West to account for serial correlation from overlapping horizons. This approach avoids the contamination problem of a BVAR Milei dummy (which absorbs all Milei-era macro differences, not just communication effects) and makes the regime heterogeneity test transparent at each horizon. Implemented in R using the `lpirfs` package.
+
+**Robustness:** LP-IV using the narrative instrument (Montiel Olea & Plagborg-Møller 2021) — events include DNU 70/2023, the December 2023 devaluation announcement, Ley Bases votes, inauguration addresses, Davos/CPAC appearances. Weak-IV tests (Olea–Pflueger) reported.
 
 ### Stage 3. Identification (`econometrics/identification/`)
 
-Three identification schemes are implemented and compared:
-
-1. **Cholesky ordering** (baseline, following Istrefi–Piloiu): hawkishness ordered before macro variables, assuming no contemporaneous feedback from inflation expectations to rhetoric.
-2. **Sign restrictions**: a hawkish shock is required to raise the hawkishness score on impact, weakly appreciate the parallel FX, and weakly lower country risk, while leaving inflation expectations free to respond in either direction.
-3. **Narrative proxy-SVAR** (Mertens–Ravn 2013, Stock–Watson 2018, Gertler–Karadi 2015): an external instrument is constructed from pre-registered announcement dates (DNU 70/2023, the December 2023 devaluation announcement, Ley Bases votes, major presidential vetoes, inauguration addresses, Davos/CPAC appearances). The event-day surprise is measured using the residualized hawkishness score and, where intraday data permit, the high-frequency change in ARS CCL and EMBI spreads. Event-level surprises are summed within each calendar month to produce the monthly instrument, with most entries at zero and nonzero spikes on event months. Weak-IV tests (Olea–Pflueger) are reported.
+Regime heterogeneity is tested via the interaction term δh in the LP specification. The headline exhibit is the **pre-Milei vs. post-Milei IRF comparison**: plotting βh (baseline) and βh + δh (Milei regime) with confidence bands for the response of 12m and 24m REM inflation expectations to a one-standard-deviation hawkishness shock.
 
 ### Stage 4. Results (`econometrics/results/`)
 
-Produces impulse response functions, forecast error variance decompositions, and historical decompositions. The headline exhibit is the **pre-Milei vs. post-Milei split-sample comparison of IRFs**: the response of 24-month-ahead REM inflation expectations (and its cross-sectional dispersion) to a one-standard-deviation hawkishness shock, estimated separately on the pre-December 2023 subsample and on the Milei subsample. Structural break tests (Bai–Perron on the hawkishness series; Chow and QLR on reduced-form VAR coefficients) provide formal evidence on whether the regime change is statistically detectable.
+IRFs for each outcome variable (REM inflation expectations, EMBI+ spread, ARS CCL rate) at horizons h = 0, ..., 24 months. Headline test: is δh statistically different from zero for inflation expectations, and does the sign make economic sense (hawkish communication → lower expectations under Milei).
 
 ### Stage 5. Robustness (`econometrics/robustness/`)
 
@@ -163,10 +165,16 @@ Python dependencies are pinned in `requirements.txt` (signal pipeline). R depend
 
 ## Timeline and status
 
-**Signal pipeline (Stages 1–5): COMPLETE as of 2026-04-30.**  
-Primary BVAR input `net_hawkish_llm_z` is in `data/processed/bvar_signal_llm.csv`, covering 125 monthly observations with valid signal (2015-12 → 2026-04; 2 AF months NaN due to zero fiscal paragraphs). Dictionary robustness series `net_hawkish_z` is in `data/interim/monthly_signal.csv`. Cross-validation: Pearson r = 0.767, Spearman ρ = 0.765.
+**Signal pipeline (Stages 1–5): COMPLETE as of 2026-05-02 (v8).**  
+Primary signal `net_hawkish_llm_z` is in `data/processed/bvar_signal_llm.csv` and `llm_signal_v8.csv` (delivered to econometrics group). 125 monthly observations (2015-12 → 2026-04). Two AF months absent: Jan 2020 and Nov 2023 (zero fiscal paragraphs — treatment must be stated in thesis). Cross-validation: Pearson r = 0.839, Spearman ρ = 0.835.
 
-**Active priorities:** (1) Re-run Stage 4 (`tfidf_dictionary.py`) and Stage 5 (`llm_scoring.py`) with the v8 keyword filter. (2) BBD keyword audit + human validation holdout — label ~150 paragraphs (fiscal/non-fiscal and hawkish/neutral/dovish), report filter precision/recall and LLM F1 in one pass. (3) Stage 5b few-shot robustness run — add 9 labeled examples to prompt, compare ρ against zero-shot baseline. (4) External validation — correlate `net_hawkish_llm_z` with Argentine primary balance, EMBI+, ARS/USD. (5) BVAR construction in `econometrics/` (currently empty skeleton), using TVP-VAR (Primiceri 2005) as preferred specification to accommodate the structural break across administrations.
+**Known data issue:** February 2026 Milei has P_t = 1 (single ceremonial paragraph, `deuda` false positive). Signal = −0.113z; anomalously low and should be flagged or excluded in the LP estimation.
+
+**Active priorities:**
+1. Human validation — label ~60 paragraphs, report precision/recall/F1 vs LLM. **Blocking for defense.**
+2. Few-shot robustness run — 9 labeled examples in prompt, compare ρ against zero-shot.
+3. External validation — correlate `net_hawkish_llm_z` with primary balance, EMBI+, ARS/USD.
+4. Local projections in `econometrics/` — group handling; use `llm_signal_v8.csv`.
 
 ## References
 
