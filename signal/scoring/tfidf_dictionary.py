@@ -1,5 +1,5 @@
 """
-signal/scoring/tfidf_dictionary.py  (v7 — keyword fiscal filter)
+signal/scoring/tfidf_dictionary.py  (v8 — keyword fiscal filter)
 ────────────────────────────────────────────────────────────────────────
 Stage 4 of the signal pipeline.
 
@@ -95,7 +95,7 @@ TABLES_DIR  = os.path.join(_ROOT, "outputs", "tables")
 PRES_ORDER  = ["Macri", "AF", "Milei"]
 PRES_COLORS = {"Macri": "#2196F3", "AF": "#4CAF50", "Milei": "#FF5722"}
 
-# ── Keyword fiscal filter (v7) ────────────────────────────────────────────────
+# ── Keyword fiscal filter (v8) ────────────────────────────────────────────────
 # A paragraph is classified as fiscal if it contains at least one of these
 # terms.  Follows Baker, Bloom & Davis (2016): fiscal relevance is determined
 # by keyword presence, not a topic model.
@@ -523,7 +523,7 @@ def run():
     para_df = pd.read_csv(PARA_CSV)
     para_df = para_df[para_df["president"].isin(PRES_ORDER)].copy()
 
-    # ── v7: keyword fiscal filter ─────────────────────────────────────────────
+    # ── v8: keyword fiscal filter ─────────────────────────────────────────────
     # Build compiled patterns (populate module-level list used by is_fiscal_paragraph)
     global _FISCAL_PATTERNS
     _FISCAL_PATTERNS = build_fiscal_patterns()
@@ -663,7 +663,7 @@ def run():
 
     # ── 9. Summary text ───────────────────────────────────────────────────────
     lines = [
-        "=== DICTIONARY SCORING SUMMARY (v7 — keyword fiscal filter) ===",
+        "=== DICTIONARY SCORING SUMMARY (v8 — keyword fiscal filter) ===",
         f"Hawkish terms : {len(hawkish_patterns)}",
         f"Dovish terms  : {len(dovish_patterns)}",
         f"Fiscal keywords: {len(FISCAL_KEYWORDS)}",
