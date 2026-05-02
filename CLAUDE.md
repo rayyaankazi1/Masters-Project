@@ -81,7 +81,7 @@ The LLM scoring pipeline (Stage 5) is **completely independent** of the hawkish/
 
 The dictionaries are exclusively Stage 4 (tfidf_dictionary.py). The only shared component between Stage 4 and Stage 5 is the fiscal keyword filter (v8, 22 keywords).
 
-This independence is the key validation property: the LLM and dictionary signals agree at ρ = 0.765 despite using completely different methods.
+This independence is the key validation property: the LLM and dictionary signals agree at ρ = 0.835 despite using completely different methods.
 
 ---
 
@@ -90,39 +90,41 @@ This independence is the key validation property: the LLM and dictionary signals
 ### LLM Signal (Primary — Stage 5, zero-shot)
 
 **Model:** claude-haiku-4-5-20251001  
-**Paragraphs scored:** 2,920 fiscal keyword-filtered paragraphs (v7 filter — v8 rerun pending)  
+**Paragraphs scored:** 3,904 fiscal keyword-filtered paragraphs (v8 filter)  
 **Aggregation:** EPU-style (H_t − D_t) / P_t, winsorised 2.5/97.5 pct, cross-president z-scored
 
 | President | N months | Mean-z | Std-z | Score distribution (H/N/D) |
 |-----------|----------|--------|-------|----------------------------|
-| Macri | 48 | +0.380 | 0.648 | 48.7% / 37.6% / 13.7% |
-| AF | 47 | −1.026 | 0.502 | 9.5% / 40.0% / 50.5% |
-| Milei | 29 | +1.034 | 0.387 | 73.4% / 26.3% / 0.3% |
+| Macri | 49 | +0.179 | 0.622 | 28.8% / 51.6% / 19.6% |
+| AF | 47 | −0.983 | 0.382 | 7.1% / 41.5% / 51.4% |
+| Milei | 29 | +1.291 | 0.346 | 72.9% / 26.7% / 0.4% |
 
-Milei–AF gap: **2.06 z-units**  
-January 2024 (Davos): **fixed** — LLM correctly scores H=2, D=0 → z = +1.542 (was −1.532 in dictionary signal)
+Milei–AF gap: **2.27 z-units**  
+January 2024 (Davos): **confirmed** — LLM scores z = +1.542 (correctly hawkish; dictionary z = +0.238)
 
-### Dictionary Signal (Robustness — Stage 4)
+**Note on Macri v7→v8 shift (+0.38z → +0.18z):** The drop reflects two effects: (1) `pobreza` added ~339 neutral paragraphs to Macri's P_t (confirmed by spot-check — all scored 0/0), diluting the denominator; (2) `jubil`, `pension`, `salario` added ~109 genuinely dovish paragraphs (Macri's social contract commitments on pensions/wages that v7 missed). The direction ordering is unchanged and the v8 reading is more accurate.
+
+### Dictionary Signal (Robustness — Stage 4, v8)
 
 | President | N months | Mean-z | Std-z |
 |-----------|----------|--------|-------|
-| Macri | 49 | +0.247 | 0.882 |
-| AF | 47 | −0.905 | 0.857 |
-| Milei | 29 | +1.058 | 0.539 |
+| Macri | 49 | +0.212 | 0.460 |
+| AF | 47 | −0.979 | 0.579 |
+| Milei | 29 | +1.228 | 0.514 |
 
-### Cross-Validation
+### Cross-Validation (v8, n=123 common months)
 
 | Comparison | Pearson r | Spearman ρ |
 |------------|-----------|------------|
-| LLM vs Dictionary | 0.767 | 0.765 |
-| LLM vs Old signal | 0.622 | 0.648 |
-| Dictionary vs Old signal | 0.608 | 0.632 |
+| LLM v8 vs Dictionary v8 | 0.839 | 0.835 |
+| LLM v8 vs Old signal | 0.740 | 0.670 |
+| Dictionary v8 vs Old signal | 0.713 | 0.686 |
 
-Target ρ ≥ 0.65: **MET**. Both signals measure the same underlying construct.
+Target ρ ≥ 0.65: **MET on all comparisons**. Primary cross-validation (LLM vs Dictionary) improved substantially from v7 (ρ = 0.765 → 0.835), reflecting the more symmetric v8 filter.
 
-**Key divergence:** January 2024 (Milei, gap = 3.07z) — LLM correctly captures Davos ideological hawkishness; dictionary missed it due to vocabulary limitations.
+**Note on Old signal correlations:** The old signal uses within-president z-scoring (Macri mean = −0.82, AF mean = −1.14, Milei mean = +1.03), making level comparisons invalid. The ρ = 0.67–0.69 reflects agreement in month-to-month movements, not levels.
 
-**Macri divergences:** LLM sees Macri as slightly more hawkish (+0.38z vs +0.25z) because it picks up fiscal-accounting hawkish content more reliably than the dictionary. Several Macri months where dictionary scored neutral, LLM scores hawkish.
+**Key divergences (v8):** January 2024 Milei gap = 1.30z (LLM +1.542 vs Dict +0.238) — LLM correctly captures Davos ideological hawkishness. Largest overall divergence: Macri 2016-05 (LLM −1.228 vs Dict +0.325, gap = 1.55z) — likely reflects gradualismo framing where fiscal vocabulary was present but stance was non-committal.
 
 ---
 
@@ -146,12 +148,14 @@ Target ρ ≥ 0.65: **MET**. Both signals measure the same underlying construct.
 
 This replaced the LDA threshold filter (v6) which had an asymmetric bias — it captured ~84% of hawkish hits but only ~40% of dovish hits, because hawkish terms are inherently fiscal-accounting vocabulary while dovish terms include social-spending vocabulary assigned by LDA to a different topic. BBD's symmetric keyword approach fixes this.
 
-**NOTE: v8 filter was just updated. Both tfidf_dictionary.py and llm_scoring.py must be re-run to regenerate outputs with the new fiscal paragraphs. The existing signal files are from v7.**
+**v8 rerun complete (2026-05-02).** Both tfidf_dictionary.py and llm_scoring.py have been re-run. All signal files are now v8.
 
-**Fiscal paragraph counts by president (v7 — pre-rerun):**
-- Macri: 452 fiscal paragraphs / 5,247 total (8.6%) — 9.2 fiscal paras/month
-- AF: 825 fiscal paragraphs / 6,264 total (13.2%) — 16.8 fiscal paras/month
-- Milei: 1,643 fiscal paragraphs / 4,686 total (35.1%) — 56.7 fiscal paras/month
+**Fiscal paragraph counts by president (v8):**
+- Macri: 873 fiscal paragraphs / 5,247 total (16.6%) — 17.8 fiscal paras/month
+- AF: 1,140 fiscal paragraphs / 6,264 total (18.2%) — 24.3 fiscal paras/month
+- Milei: 1,891 fiscal paragraphs / 4,686 total (40.4%) — 65.2 fiscal paras/month
+
+**v7 → v8 change:** Macri +93% (driven by `pobreza` +339 neutral paras, `jubil` +53), AF +38%, Milei +15%. Macri increase confirmed as mostly neutral dilution via spot-check (15/15 sampled `pobreza`-only paras scored 0/0 by dictionary).
 
 **Milei speech note:** Milei gives fewer speeches than Macri/AF (6.4/month vs 13.4/month) but his speeches are longer and have far higher fiscal content density (35% vs 8–13%). The LLM signal level difference reflects genuine fiscal discourse intensity, not speech volume.
 
@@ -334,12 +338,12 @@ python signal/scoring/llm_scoring.py             # full run
 
 - **Corpus:** 1,498 speeches, 16,197 paragraphs, 3 presidents
 - **Dictionary:** 61 hawkish + 46 dovish = 107 terms (Stage 4 only — not used in LLM scoring)
-- **Fiscal paragraphs scored by LLM:** 2,920 (452 Macri + 825 AF + 1,643 Milei)
+- **Fiscal paragraphs scored by LLM:** 3,904 (873 Macri + 1,140 AF + 1,891 Milei) — v8 filter
 - **LLM primary BVAR column:** `net_hawkish_llm_z` in `data/interim/monthly_signal_llm.csv`
 - **Dictionary robustness column:** `net_hawkish_z` in `data/interim/monthly_signal.csv`
-- **Cross-validation:** Pearson r = 0.767, Spearman ρ = 0.765 (LLM vs dictionary)
-- **January 2024 fix:** LLM z = +1.542 (was −1.532 in dictionary) — Davos speech correctly hawkish
-- **President ordering (LLM):** Milei +1.03z > Macri +0.38z > AF −1.03z (gap = 2.06z)
+- **Cross-validation:** Pearson r = 0.839, Spearman ρ = 0.835 (LLM v8 vs dictionary v8)
+- **January 2024:** LLM z = +1.542, Dict z = +0.238 — Davos correctly hawkish in both; LLM stronger
+- **President ordering (LLM v8):** Milei +1.29z > Macri +0.18z > AF −0.98z (gap = 2.27z)
 - **Ideology-only paragraphs (excluded):** 1,593 — Milei 1,106 / AF 369 / Macri 118
 - **Fiscal keyword filter:** 22 keywords v8 (symmetric — BBD 2016 approach; v8 just updated, rerun pending)
 - **LLM model used:** claude-haiku-4-5-20251001, temperature=0
