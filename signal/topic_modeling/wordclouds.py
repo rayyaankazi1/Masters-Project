@@ -1,15 +1,17 @@
 """
 signal/topic_modeling/wordclouds.py────────────────────────────────────
-Descriptive word cloud visualisations built on top of the LDA paragraph
-dataframe produced by lda.py.
+Descriptive word cloud visualisations using the v8 pipeline output.
+
+Fiscal filter: uses is_fiscal flag from paragraphs_scored.csv (BBD 2016
+22-keyword approach) — NOT the old LDA fiscal_topic_prob threshold.
 
 Four sets of outputs
 ─────────────────────
 1. Whole-corpus clouds     — full tokenised vocabulary, all presidents combined
                              then per president. Shows overall rhetorical profile.
-2. Fiscal-filtered clouds  — paragraphs with fiscal_topic_prob ≥ threshold,
+2. Fiscal-filtered clouds  — paragraphs where is_fiscal == True (v8 BBD filter),
                              all presidents combined then per president.
-3. Ideology-filtered clouds— paragraphs with ideology_topic_prob ≥ threshold,
+3. Ideology-filtered clouds— paragraphs where is_ideology == True,
                              all presidents combined then per president.
 4. Comparison panels       — fiscal vs non-fiscal side by side for each
                              president. Key validation exhibit: demonstrates
@@ -17,7 +19,7 @@ Four sets of outputs
 
 Reads
 -----
-  data/interim/paragraphs_lda.csv   (produced by lda.py)
+  data/interim/paragraphs_scored.csv   (produced by tfidf_dictionary.py, v8)
 
 Writes
 ------
@@ -45,7 +47,7 @@ from gensim.models.phrases import Phraser
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _HERE        = os.path.dirname(os.path.abspath(__file__))
 _ROOT        = os.path.abspath(os.path.join(_HERE, "..", ".."))
-PARA_CSV     = os.path.join(_ROOT, "data", "interim", "paragraphs_lda.csv")
+PARA_CSV     = os.path.join(_ROOT, "data", "interim", "paragraphs_scored.csv")
 FIGURES_DIR  = os.path.join(_ROOT, "outputs", "figures")
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -250,17 +252,20 @@ def plot_full_corpus(para_df: pd.DataFrame):
 # ── 2. Fiscal-filtered clouds ─────────────────────────────────────────────────
 
 def plot_fiscal_filtered(para_df: pd.DataFrame):
-    print("\n── Fiscal-filtered word clouds ───────────────────────────────────")
-    if "fiscal_topic_prob" not in para_df.columns:
-        print("  fiscal_topic_prob not found — run lda.py first. Skipping.")
+    print("\n── Fiscal-filtered word clouds (v8 BBD is_fiscal flag) ───────────")
+    if "is_fiscal" not in para_df.columns:
+        print("  is_fiscal not found — run tfidf_dictionary.py first. Skipping.")
         return
-    fiscal = para_df[para_df["fiscal_topic_prob"] >= FISCAL_MIN_PROB]
-    print(f"  {len(fiscal):,} paragraphs pass fiscal threshold (≥{FISCAL_MIN_PROB})")
+    fiscal = para_df[para_df["is_fiscal"] == True]
+    print(f"  {len(fiscal):,} paragraphs pass v8 BBD fiscal filter (is_fiscal=True)")
+    for pres in PRES_ORDER:
+        n = len(fiscal[fiscal["president"] == pres])
+        print(f"    {pres}: {n:,} fiscal paragraphs")
 
     # All presidents combined
     text_all = _df_to_text(fiscal)
     wc = make_wc(text_all, bg_color="white", colormap="YlOrRd")
-    save_wc(wc, f"Fiscal vocabulary — all presidents (prob ≥ {FISCAL_MIN_PROB})",
+    save_wc(wc, "Fiscal vocabulary — all presidents (v8 BBD filter)",
             os.path.join(FIGURES_DIR, "wc_fiscal_all.png"))
 
     # Per president
@@ -277,7 +282,7 @@ def plot_fiscal_filtered(para_df: pd.DataFrame):
         ))
         save_wc(
             wc,
-            f"Fiscal vocabulary — {pres} (prob ≥ {FISCAL_MIN_PROB})",
+            f"Fiscal vocabulary — {pres} (v8 BBD filter)",
             os.path.join(FIGURES_DIR, f"wc_fiscal_{pres.lower()}.png"),
         )
 
@@ -285,16 +290,14 @@ def plot_fiscal_filtered(para_df: pd.DataFrame):
 
 def plot_ideology_filtered(para_df: pd.DataFrame):
     print("\n── Ideology-filtered word clouds ─────────────────────────────────")
-    if "ideology_topic_prob" not in para_df.columns:
-        print("  ideology_topic_prob not found — run lda.py with "
-              "IDEOLOGY_TOPIC_IDS set. Skipping.")
+    if "is_ideology" not in para_df.columns:
+        print("  is_ideology not found — skipping.")
         return
-    if (para_df["ideology_topic_prob"] == 0).all():
-        print("  ideology_topic_prob is all 0.0 — IDEOLOGY_TOPIC_IDS was empty "
-              "when lda.py last ran. Skipping.")
+    if para_df["is_ideology"].sum() == 0:
+        print("  is_ideology is all False — skipping.")
         return
-    ideo = para_df[para_df["ideology_topic_prob"] >= FISCAL_MIN_PROB]
-    print(f"  {len(ideo):,} paragraphs pass ideology threshold (≥{FISCAL_MIN_PROB})")
+    ideo = para_df[para_df["is_ideology"] == True]
+    print(f"  {len(ideo):,} paragraphs pass ideology filter (is_ideology=True)")
 
     # All presidents combined
     text_all = _df_to_text(ideo)
@@ -326,14 +329,13 @@ def plot_ideology_filtered(para_df: pd.DataFrame):
 def plot_comparison(para_df: pd.DataFrame):
     """
     For each president: fiscal paragraphs (left) vs non-fiscal paragraphs (right).
-    This is the key validation exhibit — shows the filter selects meaningfully
-    different language, not just a random subset of the full corpus.
+    Uses v8 BBD is_fiscal flag — not the old LDA fiscal_topic_prob threshold.
     """
-    print("\n── Comparison panels (fiscal vs non-fiscal) ──────────────────────")
+    print("\n── Comparison panels (fiscal vs non-fiscal, v8 BBD) ──────────────")
     for pres in PRES_ORDER:
-        sub      = para_df[para_df["president"] == pres]
-        fiscal    = sub[sub["fiscal_topic_prob"] >= FISCAL_MIN_PROB]
-        nonfiscal = sub[sub["fiscal_topic_prob"] <  FISCAL_MIN_PROB]
+        sub       = para_df[para_df["president"] == pres]
+        fiscal    = sub[sub["is_fiscal"] == True]
+        nonfiscal = sub[sub["is_fiscal"] == False]
 
         if fiscal.empty or nonfiscal.empty:
             print(f"  {pres}: insufficient data for comparison — skipping.")
@@ -362,7 +364,7 @@ def plot_comparison(para_df: pd.DataFrame):
         axes[0].imshow(wc_f, interpolation="bilinear")
         axes[0].axis("off")
         axes[0].set_title(
-            f"Fiscal paragraphs (prob ≥ {FISCAL_MIN_PROB})",
+            "Fiscal paragraphs (v8 BBD keyword filter)",
             fontsize=11, color="#333333"
         )
 
@@ -395,11 +397,11 @@ def run():
     para_df = para_df[para_df["president"].isin(PRES_ORDER)]
 
     print(f"  {len(para_df):,} paragraphs loaded")
-    for col, label in [("fiscal_topic_prob", "fiscal"), ("ideology_topic_prob", "ideology")]:
+    for col, label in [("is_fiscal", "fiscal"), ("is_ideology", "ideology")]:
         if col in para_df.columns:
-            n = (para_df[col] >= FISCAL_MIN_PROB).sum()
+            n = para_df[col].sum()
             pct = n / len(para_df) * 100
-            print(f"  {label.capitalize()} paragraphs (≥{FISCAL_MIN_PROB}): {n:,} ({pct:.1f}%)")
+            print(f"  {label.capitalize()} paragraphs (v8 BBD {col}=True): {n:,} ({pct:.1f}%)")
 
     print(f"\nBuilding phrase models for word clouds "
           f"(min_count={WC_PHRASES_MIN_COUNT}, threshold={WC_PHRASES_THRESHOLD})...")
