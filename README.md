@@ -8,7 +8,7 @@ Does the fiscal-hawkishness content of presidential communication causally shift
 
 ## Approach in one paragraph
 
-We construct a monthly time series of fiscal hawkishness from Argentine presidential speeches (2015–2026) using a validated dictionary-based NLP pipeline, cross-checked against LLM-based scoring and human labels. We then embed this series in a Bayesian structural VAR with inflation, inflation expectations (BCRA REM) and expectations of fiscal balance, identifying the structural hawkishness shock via sign restrictions and a narrative proxy-SVAR built around pre-specified announcement dates. We test for regime change in the rhetoric-to-expectations pass-through around Milei's inauguration.
+We construct a monthly time series of fiscal hawkishness from Argentine presidential speeches (2015–2026) using a validated dictionary-based NLP pipeline, cross-checked against LLM-based scoring and human labels. We embed this series in Local Projections (Jordà 2005) as the primary identification strategy, testing for regime heterogeneity in the rhetoric-to-expectations pass-through via a Milei interaction term. A BVAR is retained as a robustness check.
 
 ## Theoretical grounding
 
@@ -66,6 +66,8 @@ LDA is run on the paragraph-level corpus to characterise the latent topic struct
 **Mutual validation.** If the LDA-derived fiscal-topic share and the dictionary/LLM hawkishness signal correlate strongly at monthly frequency, this constitutes independent model-free evidence that both are measuring the same underlying construct. We optionally fit a Dynamic Linear Model (DLM) on the monthly fiscal-topic proportions (Battaglia & Salunina 2020) and compare the Kalman-smoothed latent factor with `net_hawkish_z` as a further robustness check.
 
 LDA is implemented in Gensim with a grid search over the number of topics (*k* ∈ {5, 8, 10, 12, 15, 20}) selected by coherence score (*c_v*) on a held-out validation split. Hyperparameters (α, β) are optimized with the built-in auto-tuning.
+
+**Word cloud visualisations** (`signal/topic_modeling/wordclouds.py`) are produced from the fiscal-filtered paragraph subset — i.e. paragraphs where `is_fiscal == True` in `data/interim/paragraphs_scored.csv` (the v8 BBD keyword flag), not from an LDA topic-probability threshold. This ensures the word clouds reflect the same paragraph set used in signal construction. Outputs: `outputs/figures/wc_fiscal_<president>.png`.
 
 ### Stage 4. Dictionary-based scoring (`signal/scoring/tfidf_dictionary.py`)
 
@@ -129,11 +131,11 @@ Merges the monthly hawkishness signal with macro data: inflation (INDEC IPC Naci
 
 ### Stage 2. Estimation (`econometrics/estimation/`)
 
-**Primary approach: Local Projections (Jordà 2005)**, recommended by supervisor to replace the earlier BVAR-with-dummy specification. For each outcome variable y and horizon h = 0, 1, ..., H:
+**Primary approach: Local Projections (Jordà 2005)**, recommended by supervisor. For each outcome variable y and horizon h = 0, 1, ..., H:
 
 `y_{t+h} − y_{t−1} = αh + βh·shock_t + δh·(shock_t × Milei_t) + γh·controls_t + ε_{t+h}`
 
-βh traces the baseline IRF; δh directly estimates the *difference* in response under Milei vs prior presidents. Standard errors are Newey-West to account for serial correlation from overlapping horizons. This approach avoids the contamination problem of a BVAR Milei dummy (which absorbs all Milei-era macro differences, not just communication effects) and makes the regime heterogeneity test transparent at each horizon. Implemented in R using the `lpirfs` package.
+The LHS is the **cumulative change** from t−1 to t+h — not the first difference `∆y_{t+h}`. This directly traces the IRF without needing to cumulate across horizons and is stationary for I(1) outcome variables. βh traces the baseline IRF; δh directly estimates the *difference* in response under Milei vs prior presidents. Inference uses HAC standard errors (lags=4) for point estimates and wild bootstrap (B=500, Rademacher weights) for 95% confidence bands. Lag order L=1 selected by BIC. Implemented in R using the `lpirfs` package.
 
 **Robustness:** LP-IV using the narrative instrument (Montiel Olea & Plagborg-Møller 2021) — events include DNU 70/2023, the December 2023 devaluation announcement, Ley Bases votes, inauguration addresses, Davos/CPAC appearances. Weak-IV tests (Olea–Pflueger) reported.
 
@@ -147,7 +149,7 @@ IRFs for each outcome variable (REM inflation expectations, EMBI+ spread, ARS CC
 
 ### Stage 5. Robustness (`econometrics/robustness/`)
 
-Dictionary vs. LLM score in the BVAR, alternative variable orderings, lag length robustness, subsample stability, alternative monthly aggregation rules (word-count vs. equal-weight), and alternative inflation-expectation measures (UTDT household survey as a non-professional complement).
+Dictionary vs. LLM signal in LP, alternative lag lengths, subsample stability (pre-Milei only), alternative monthly aggregation rules (word-count vs. equal-weight), sentence-level vs. paragraph-level LLM scoring, and alternative inflation-expectation measures (UTDT household survey as a non-professional complement). BVAR with Cholesky identification retained as an additional robustness frame.
 
 ## Data sources
 
@@ -168,13 +170,16 @@ Python dependencies are pinned in `requirements.txt` (signal pipeline). R depend
 **Signal pipeline (Stages 1–5): COMPLETE as of 2026-05-02 (v8).**  
 Primary signal `net_hawkish_llm_z` is in `data/processed/bvar_signal_llm.csv` and `llm_signal_v8.csv` (delivered to econometrics group). 125 monthly observations (2015-12 → 2026-04). Two AF months absent: Jan 2020 and Nov 2023 (zero fiscal paragraphs — treatment must be stated in thesis). Cross-validation: Pearson r = 0.839, Spearman ρ = 0.835.
 
+**Word cloud visualisations updated 2026-05-05** to use v8 BBD fiscal filter (`is_fiscal` from `paragraphs_scored.csv`) rather than LDA topic probabilities. Fiscal-filtered clouds now in `outputs/figures/wc_fiscal_<president>.png`.
+
 **Known data issue:** February 2026 Milei has P_t = 1 (single ceremonial paragraph, `deuda` false positive). Signal = −0.113z; anomalously low and should be flagged or excluded in the LP estimation.
 
 **Active priorities:**
 1. Human validation — label ~60 paragraphs, report precision/recall/F1 vs LLM. **Blocking for defense.**
 2. Few-shot robustness run — 9 labeled examples in prompt, compare ρ against zero-shot.
 3. External validation — correlate `net_hawkish_llm_z` with primary balance, EMBI+, ARS/USD.
-4. Local projections in `econometrics/` — group handling; use `llm_signal_v8.csv`.
+4. Local projections — group handling; use `llm_signal_v8.csv`; LP spec uses `y_{t+h} − y_{t−1}` (cumulative changes).
+5. LP slide equation fix — current presentation slide uses `∆y_{t+h}`; must be corrected to `y_{t+h} − y_{t−1}` before final version.
 
 ## References
 

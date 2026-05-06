@@ -1,15 +1,15 @@
 # Masters-Project — Claude Handoff Document
-**Last updated:** 2026-05-02 (v8 rerun complete)  
+**Last updated:** 2026-05-05 (presentation prep, wordclouds updated to v8 fiscal filter)  
 **Author:** Rayyaan Kazi (BSE Master's student)  
-**Project:** Fiscal hawkishness NLP signal from Argentine presidential speeches as input to Local Projections (Jordà 2005) — supervisor-recommended identification strategy
+**Project:** Fiscal hawkishness NLP signal from Argentine presidential speeches as input to Local Projections (Jordà 2005) — supervisor-recommended primary identification strategy. BVAR retained as robustness check.
 
 ---
 
 ## Project Goal
 
-Construct a monthly fiscal hawkishness signal from Argentine presidential speeches (Macri 2015–2019, Alberto Fernández 2019–2023, Milei 2023–2026) and use it as an identified shock series in a BVAR to estimate macroeconomic responses to fiscal stance changes.
+Construct a monthly fiscal hawkishness signal from Argentine presidential speeches (Macri 2015–2019, Alberto Fernández 2019–2023, Milei 2023–2026) and use it as an identified shock series in Local Projections (Jordà 2005) to estimate macroeconomic responses to fiscal stance changes, with regime heterogeneity tested via a Milei interaction term. BVAR is retained as a robustness check.
 
-**Primary BVAR input:** `net_hawkish_llm_z` in `data/interim/monthly_signal_llm.csv`  
+**Primary LP input:** `net_hawkish_llm_z` in `data/interim/monthly_signal_llm.csv`  
 **Robustness/replication check:** `net_hawkish_z` in `data/interim/monthly_signal.csv`
 
 ---
@@ -35,9 +35,11 @@ Stage 5c: Validation    signal/validation/                            ← PENDIN
            ↓  ~60 human-labeled paragraphs, precision/recall/F1 vs LLM
 Stage 6: External valid (not yet built)                               ← PENDING
            ↓  correlate net_hawkish_llm_z with primary balance, EMBI+, ARS/USD
-Stage 7: Local Projections  econometrics/                             ← PENDING (not yet built)
+Stage 7: Local Projections  econometrics/                             ← IN PROGRESS (group)
            ↓  Jordà (2005) LP-IRFs, regime heterogeneity via interaction term
-           ↓  supervisor-recommended; replaces BVAR-with-dummy approach
+           ↓  PRIMARY approach; BVAR retained as robustness
+           ↓  LP spec: y_{t+h} − y_{t−1} (cumulative changes) — NOT ∆y_{t+h}
+           ↓  HAC SEs + wild bootstrap (B=500, Rademacher); L=1 lag by BIC
 ```
 
 ---
@@ -60,7 +62,9 @@ Stage 7: Local Projections  econometrics/                             ← PENDIN
 | `signal/dictionaries/dovish_terms.txt` | 46 dovish terms (v6) — used in Stage 4 only |
 | `signal/scoring/tfidf_dictionary.py` | Stage 4 scoring pipeline (v8 — keyword fiscal filter) |
 | `signal/scoring/llm_scoring.py` | Stage 5 LLM paragraph scoring (Claude API) |
-| `outputs/figures/llm_vs_dict_signal.png` | 4-panel LLM vs dictionary validation chart |
+| `signal/topic_modeling/wordclouds.py` | Word cloud generator — reads `paragraphs_scored.csv`, filters by `is_fiscal` (v8 BBD flag) |
+| `outputs/figures/wc_fiscal_<president>.png` | Fiscal-filtered word clouds (v8) — used in presentation slides |
+| `outputs/figures/llm_vs_dict_signal.png` | 4-panel LLM vs dictionary validation chart — appendix slide |
 | `outputs/tables/scoring_summary.txt` | Dictionary scoring audit |
 | `outputs/tables/llm_scoring_summary.txt` | LLM scoring audit + cross-validation stats |
 
@@ -296,20 +300,31 @@ Checkpoint/resume: `data/interim/llm_scores_checkpoint.json` — delete to resco
 
 ### Econometrics (Stage 7) — being handled by group
 
-9. **Local projections** — Supervisor-recommended identification strategy (Jordà 2005). Replaces earlier BVAR-with-dummy approach which had contamination problems. For each outcome variable y and horizon h:
-   - `y_{t+h} − y_{t−1} = αh + βh·shock_t + δh·(shock_t × Milei_t) + γh·controls_t + ε_{t+h}`
-   - δh directly estimates the regime difference in IRF at each horizon — clean and interpretable
-   - Newey-West SEs for serial correlation from overlapping horizons
+9. **Local projections** — Primary identification strategy (Jordà 2005). For each outcome variable y and horizon h:
+   - **Correct spec:** `y_{t+h} − y_{t−1} = αh + βh·shock_t + δh·(shock_t × Milei_t) + γh·controls_t + ε_{t+h}`
+   - LHS is **cumulative change** from t−1 to t+h — NOT `∆y_{t+h}` (first difference at horizon h). The current LP slide in the presentation uses `∆y_{t+h}` which needs correcting before final version.
+   - δh directly estimates the regime difference in IRF at each horizon
+   - HAC SEs (lags=4) + wild bootstrap (B=500, Rademacher) for 95% bands
    - LP-IV using narrative instrument events (Montiel Olea & Plagborg-Møller 2021)
    - Use `llm_signal_v8.csv` (delivered to group 2026-05-02)
+   - BVAR retained in presentation as robustness check (not primary result)
+
+### Presentation
+
+10. **Mid-project meeting** — 2026-05-06. LaTeX source in `paper/` folder.
+    - Slide order: Corpus → **Word clouds (fiscal-filtered)** → Pipeline → Signal results → ...
+    - Word cloud slide uses `wc_fiscal_*.png` (v8 BBD filter, updated 2026-05-05)
+    - LDA moved to appendix (descriptive only; not load-bearing)
+    - LP is primary results frame; BVAR shown as robustness
+    - LP slide equation needs updating to `y_{t+h} − y_{t−1}` before final version
 
 ### Documentation
 
-10. **Git commit:**
+11. **Git commit:**
     ```bash
     cd ~/Desktop/Masters-Project
     git add signal/ CLAUDE.md README.md outputs/ paper/
-    git commit -m "v8 complete: LLM+dict rerun, rho=0.835, slides, llm_signal_v8.csv delivered"
+    git commit -m "v8+pres: fiscal wordclouds updated, LP primary, LDA to appendix"
     ```
 
 ---
@@ -345,7 +360,7 @@ python signal/scoring/llm_scoring.py             # full run
 - **Corpus:** 1,498 speeches, 16,197 paragraphs, 3 presidents
 - **Dictionary:** 61 hawkish + 46 dovish = 107 terms (Stage 4 only — not used in LLM scoring)
 - **Fiscal paragraphs scored by LLM:** 3,904 (873 Macri + 1,140 AF + 1,891 Milei) — v8 filter
-- **LLM primary BVAR column:** `net_hawkish_llm_z` in `data/interim/monthly_signal_llm.csv`
+- **LLM primary LP input column:** `net_hawkish_llm_z` in `data/interim/monthly_signal_llm.csv`
 - **Dictionary robustness column:** `net_hawkish_z` in `data/interim/monthly_signal.csv`
 - **Cross-validation:** Pearson r = 0.839, Spearman ρ = 0.835 (LLM v8 vs dictionary v8)
 - **January 2024:** LLM z = +1.542, Dict z = +0.238 — Davos correctly hawkish in both; LLM stronger
