@@ -1,7 +1,7 @@
 item_no,para_id,president,year_month,llm_score,llm_reason,disagrees,human_score
 1,1676,Milei,2024-05,1,"Emphasizes fiscal equilibrium, no debt increase, market confidence",False,1
-2,2505,AF,2021-09,0,parse_fallback,False,-1
-3,183,Milei,2025-11,0,Explains capital accumulation and productivity theory; descriptive economic principle without fiscal stance.,False,1
+2,2505,AF,2021-09,0,parse_fallback,False,0
+3,183,Milei,2025-11,0,Explains capital accumulation and productivity theory; descriptive economic principle without fiscal stance.,False,0
 4,1046,Milei,2024-10,1,Identifies large state deficits and central bank imbalances requiring resolution.,True,1
 5,2818,AF,2020-05,-1,References state resource injection and potential wealth tax; fiscal expansion,False,0
 6,774,Milei,2025-03,0,Mixed: criticizes spending but mentions welfare increases and real wage growth.,False,-1
@@ -12,13 +12,13 @@ item_no,para_id,president,year_month,llm_score,llm_reason,disagrees,human_score
 11,2898,Macri,2019-11,1,Commits to fiscal balance and sustainable macroeconomic framework.,False,1
 12,3365,Macri,2017-03,0,Advocates long-term sustainability and solid foundations; avoids short-term relief but lacks specific fiscal measures.,False,0
 13,1206,Milei,2024-09,1,Deficit zero as foundational principle; fiscal tightening commitment,False,1
-14,2538,AF,2021-08,-1,Prioritizes protecting vulnerable populations during pandemic; social protection focus,False,0
+14,2538,AF,2021-08,-1,Prioritizes protecting vulnerable populations during pandemic; social protection focus,False,-1
 15,426,Milei,2025-08,1,"Commits to eliminating inflation, maintaining fiscal surplus, ending political privileges.",False,1
 16,2866,AF,2019-12,-1,Urgent poverty reduction and productive capacity activation; spending focus,False,-1
 17,1964,AF,2023-05,-1,Opposes privatisation; defends public state provision of services,True,-1
-18,3096,Macri,2018-06,1,State spending reduction and tax cuts; fiscal tightening emphasis,False,-1
+18,3096,Macri,2018-06,1,State spending reduction and tax cuts; fiscal tightening emphasis,False,1
 19,1699,Milei,2024-04,0,"Historical explanation of money origins; purely descriptive, no policy direction.",False,0
-20,2761,AF,2020-09,1,"Criticizes prior debt growth, financial speculation; emphasizes fiscal constraints, production",False,-1
+20,2761,AF,2020-09,1,"Criticizes prior debt growth, financial speculation; emphasizes fiscal constraints, production",False,1
 21,93,Milei,2026-03,0,Technical economic theory discussion; no fiscal policy direction or endorsement,False,0
 22,3398,Macri,2017-01,0,Discusses immigration policy and development aspirations; no fiscal policy content.,False,0
 23,862,Milei,2024-12,0,Describes debt and reserve problems; no clear policy direction stated,False,1
@@ -27,47 +27,47 @@ item_no,para_id,president,year_month,llm_score,llm_reason,disagrees,human_score
 26,2293,AF,2022-05,-1,Subsidised medicines for retirees; support for SME growth via state action.,False,-1
 27,3601,Macri,2016-05,-1,"Public investment in infrastructure, education, energy, ports, railways.",False,-1
 28,3132,Macri,2018-03,0,Discusses poverty measurement and reduction priority; no fiscal mechanism specified.,False,0
-29,1322,Milei,2024-08,1,Criticises costly spending measure; warns of debt accumulation risks,True,0
+29,1322,Milei,2024-08,1,Criticises costly spending measure; warns of debt accumulation risks,True,1
 30,795,Milei,2025-03,1,Criticises past central bank raids and monetary financing; condemns fiscal irresponsibility,False,0
 31,1981,AF,2023-05,-1,State investment in housing and social stability; public spending for family development.,True,-1
-32,3293,Macri,2017-07,-1,Criticises isolation policy; implies need for public services investment.,False,0
+32,3293,Macri,2017-07,-1,Criticises isolation policy; implies need for public services investment.,False,-1
 33,2603,AF,2021-05,-1,Describing expansion of social transfer programmes for vulnerable children,False,-1
 34,2272,AF,2022-06,0,Discusses international blockades and pandemic impacts; geopolitical narrative,False,0
-35,3062,Macri,2018-08,0,Acknowledges difficulties and volatility; no specific fiscal policy stance.,False,0
-36,200,Milei,2025-11,-1,"Expanded social programmes: doubled child allowance, maintained poverty assistance.",False,0
+35,3062,Macri,2018-08,0,Acknowledges difficulties and volatility; no specific fiscal policy stance.,False,1
+36,200,Milei,2025-11,-1,"Expanded social programmes: doubled child allowance, maintained poverty assistance.",False,-1
 37,1726,Milei,2024-04,1,Tax reduction and spending restraint to lower public expenditure and fiscal pressure.,False,1
 38,1589,Milei,2024-06,1,Deficit reduction from 10 to 1 point of GDP; 15-point fiscal adjustment achieved,False,1
 39,1436,Milei,2024-07,1,Criticises taxing agriculture and state intervention; advocates market approach,True,1
-40,3424,Macri,2016-12,0,Discusses poverty reduction and productivity without clear fiscal direction,False,1
+40,3424,Macri,2016-12,0,Discusses poverty reduction and productivity without clear fiscal direction,False,0
 41,1513,Milei,2024-06,1,Describes implementing fiscal adjustment and spending cuts despite opposition.,False,1
 42,1963,AF,2023-05,-1,Supports pension rights expansion for self-employed workers,False,-1
 43,596,Milei,2025-06,1,Rejects money emission; commits to fiscal equilibrium and sound central bank,False,1
-44,1301,Milei,2024-09,1,Criticises import tariffs and state intervention; advocates reducing regulatory burden,True,0
-45,2042,AF,2023-03,-1,Defends state enterprises against privatization and withdrawal of support,True,1
+44,1301,Milei,2024-09,1,Criticises import tariffs and state intervention; advocates reducing regulatory burden,True,1
+45,2042,AF,2023-03,-1,Defends state enterprises against privatization and withdrawal of support,True,-1
 46,2062,AF,2023-02,-1,Defends public works as economic motor; criticises market-only approach; housing investment expansion.,False,-1
-47,1797,Milei,2024-01,1,"Criticises monetary expansion, debt, subsidies, and price controls as harmful",True,-1
+47,1797,Milei,2024-01,1,"Criticises monetary expansion, debt, subsidies, and price controls as harmful",True,0
 48,1110,Milei,2024-10,1,Describes consolidating fiscal balance and removing monetary liabilities.,False,1
 49,2199,AF,2022-09,0,parse_fallback,False,0
 50,1470,Milei,2024-07,1,Defends zero deficit as solvency guarantee; criticizes fiscal profligacy,False,1
 51,572,Milei,2025-06,1,Celebrates rapid fiscal adjustment and deficit closure; hawkish fiscal consolidation.,False,1
 52,3591,Macri,2016-05,-1,Seeks capital repatriation and fiscal transparency for investment and development spending.,True,-1
 53,836,Milei,2025-01,1,"Criticises bureaucracy, regulation, and excessive public spending as harmful",False,1
-54,14,Milei,2026-04,0,Explains Phillips curve theory; descriptive economic analysis without policy stance,False,0
+54,14,Milei,2026-04,0,Explains Phillips curve theory; descriptive economic analysis without policy stance,False,1
 55,68,Milei,2026-03,1,Criticises expansionary monetary/fiscal policies; advocates sound economic analysis,False,1
-56,3487,Macri,2016-09,0,Federalism and opportunity framing; no explicit fiscal policy stance,False,1
-57,3545,Macri,2016-07,-1,"Government digital modernization programs to include citizens, achieve zero poverty",False,1
+56,3487,Macri,2016-09,0,Federalism and opportunity framing; no explicit fiscal policy stance,False,0
+57,3545,Macri,2016-07,-1,"Government digital modernization programs to include citizens, achieve zero poverty",False,0
 58,2482,AF,2021-10,-1,Advocates public works investment as economic multiplier and growth driver,False,-1
-59,2161,AF,2022-10,1,Criticises convertibility plan for causing industrial decline and economic distortion.,True,0
-60,1905,AF,2023-07,0,Narrative on regional dialogue and common challenges; no fiscal policy direction.,False,-1
-61,2680,AF,2021-01,-1,Prioritizes support for vulnerable retirees; social spending expansion,False,1
+59,2161,AF,2022-10,1,Criticises convertibility plan for causing industrial decline and economic distortion.,True,1
+60,1905,AF,2023-07,0,Narrative on regional dialogue and common challenges; no fiscal policy direction.,False,0
+61,2680,AF,2021-01,-1,Prioritizes support for vulnerable retirees; social spending expansion,False,-1
 62,3490,Macri,2016-09,0,Technology and environmental commitments; no fiscal policy direction,False,0
-63,2732,AF,2020-10,0,Describes structural regional inequality; contextual without clear fiscal policy direction,False,1
-64,3029,Macri,2018-10,-1,Public investment in Olympic Games infrastructure and inclusive civic participation,True,-1
+63,2732,AF,2020-10,0,Describes structural regional inequality; contextual without clear fiscal policy direction,False,-1
+64,3029,Macri,2018-10,-1,Public investment in Olympic Games infrastructure and inclusive civic participation,True,0
 65,3620,Macri,2016-05,-1,Announces measures to help 10 million Argentines; supports public infrastructure investment.,True,-1
-66,1642,Milei,2024-05,0,"Historical economic theory narrative, no fiscal policy direction",False,1
-67,3697,Macri,2016-01,-1,Emphasizes regional economic development and job creation initiatives,False,0
-68,2846,AF,2020-03,0,parse_fallback,False,1
-69,2207,AF,2022-09,0,Historical reflection on democracy; no fiscal policy content,False,1
-70,3069,Macri,2018-08,0,Discusses military reform and institutional commitment; no fiscal policy direction.,False,-1
+66,1642,Milei,2024-05,0,"Historical economic theory narrative, no fiscal policy direction",False,0
+67,3697,Macri,2016-01,-1,Emphasizes regional economic development and job creation initiatives,False,-1
+68,2846,AF,2020-03,0,parse_fallback,False,0
+69,2207,AF,2022-09,0,Historical reflection on democracy; no fiscal policy content,False,-1
+70,3069,Macri,2018-08,0,Discusses military reform and institutional commitment; no fiscal policy direction.,False,0
 71,2010,AF,2023-04,0,Contextual narrative on global crises; no fiscal policy direction indicated,False,-1
 72,39,Milei,2026-03,1,Criticises welfare expansion and state spending as unsustainable and harmful.,False,1
