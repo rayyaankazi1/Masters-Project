@@ -1,5 +1,5 @@
 # Masters-Project — Claude Handoff Document
-**Last updated:** 2026-05-05 (presentation prep, wordclouds updated to v8 fiscal filter)  
+**Last updated:** 2026-05-13 (human validation complete; validation figures generated; next: few-shot robustness run)  
 **Author:** Rayyaan Kazi (BSE Master's student)  
 **Project:** Fiscal hawkishness NLP signal from Argentine presidential speeches as input to Local Projections (Jordà 2005) — supervisor-recommended primary identification strategy. BVAR retained as robustness check.
 
@@ -29,10 +29,10 @@ Stage 4b: Keyword audit  signal/validation/                           ← PENDIN
            ↓  filter precision/recall report
 Stage 5: LLM scoring    signal/scoring/llm_scoring.py                 ✓ COMPLETE (v8, $1.09)
            ↓  paragraphs_llm_scored.csv, monthly_signal_llm.csv, bvar_signal_llm.csv
-Stage 5b: Few-shot      signal/scoring/llm_scoring.py --few-shot      ← PENDING
+Stage 5b: Few-shot      signal/scoring/llm_scoring.py --few-shot      ← NEXT
            ↓  few-shot robustness run (compare ρ with zero-shot)
-Stage 5c: Validation    signal/validation/                            ← PENDING (blocking)
-           ↓  ~60 human-labeled paragraphs, precision/recall/F1 vs LLM
+Stage 5c: Validation    signal/validation/                            ✓ COMPLETE (2026-05-13)
+           ↓  72 human-labeled paragraphs; macro F1=0.831, κ=0.750, accuracy=0.833
 Stage 6: External valid (not yet built)                               ← PENDING
            ↓  correlate net_hawkish_llm_z with primary balance, EMBI+, ARS/USD
 Stage 7: Local Projections  econometrics/                             ← IN PROGRESS (group)
@@ -67,6 +67,17 @@ Stage 7: Local Projections  econometrics/                             ← IN PRO
 | `outputs/figures/llm_vs_dict_signal.png` | 4-panel LLM vs dictionary validation chart — appendix slide |
 | `outputs/tables/scoring_summary.txt` | Dictionary scoring audit |
 | `outputs/tables/llm_scoring_summary.txt` | LLM scoring audit + cross-validation stats |
+| `signal/validation/paragraphs_to_label.xlsx` | Completed human labeling file (72 paragraphs) |
+| `signal/validation/labeling_key.csv` | Private key: LLM scores + president for each labeled paragraph |
+| `signal/validation/human_labels.csv` | Merged human + LLM labels — archival record |
+| `signal/validation/sample_for_labeling.py` | Sampling script — stratified draw of 72 paragraphs |
+| `signal/validation/evaluate_labels.py` | Evaluation script — computes confusion matrix, F1, κ |
+| `signal/validation/plot_validation.py` | Validation figure generator (4 charts) |
+| `outputs/figures/validation_confusion_matrix.png` | Human vs LLM confusion matrix — main validation figure |
+| `outputs/figures/validation_class_metrics.png` | Per-class precision/recall/F1 bar chart |
+| `outputs/figures/validation_president_breakdown.png` | Accuracy/F1/κ by president |
+| `outputs/figures/validation_error_analysis.png` | Correct/adjacent/extreme error breakdown |
+| `outputs/tables/human_validation_report.txt` | Full validation report (text) |
 
 ---
 
@@ -223,15 +234,37 @@ Rationale: Zero-shot is the primary result — pure blind classification, no anc
 - AF 2022-10: budget figures without endorsement
 - Macri 2019-06: company export growth, structural description
 
-### Human validation (pending — important for thesis defense)
+### Human validation — COMPLETE (2026-05-13)
 
-Every credible paper in this literature reports classification accuracy against human-labeled examples. Need to:
-1. Manually label ~60 paragraphs (20 per class) — ~2 hours work
-2. Compare human labels to LLM classifications
-3. Report precision / recall / F1 (standard academic requirement)
-4. Place labeled examples in `signal/validation/human_labels.csv`
+72 fiscal paragraphs labeled manually (stratified: 24 per class × 3 presidents), blinded — no president name, date, or LLM score shown during labeling. ~25% of sample drawn from LLM-dictionary disagreement cases (hardest cases).
 
-Without this, the thesis is vulnerable to "how do you know the LLM is doing what you think?" questions.
+**Results:**
+
+| Metric | Value |
+|--------|-------|
+| Overall accuracy | 0.833 |
+| Macro F1 | 0.831 |
+| Cohen's κ | 0.750 |
+
+| Class | Precision | Recall | F1 |
+|-------|-----------|--------|----|
+| Dovish (−1) | 0.875 | 0.840 | 0.857 |
+| Neutral (0) | 0.708 | 0.773 | 0.739 |
+| Hawkish (+1) | 0.917 | 0.880 | 0.898 |
+
+| President | N | Accuracy | Macro F1 | κ |
+|-----------|---|----------|----------|---|
+| Macri | 18 | 0.833 | 0.838 | 0.737 |
+| AF | 26 | 0.846 | 0.866 | 0.690 |
+| Milei | 28 | 0.821 | 0.743 | 0.616 |
+
+**Key finding:** Zero extreme errors (no dovish↔hawkish misclassifications). All 12 errors are adjacent-class (neutral↔hawkish or neutral↔dovish). LLM-dict disagreement cases perform identically to agreement cases (both 0.833 accuracy).
+
+**Interpretation:** κ = 0.750 is moderate-strong agreement. Neutral F1 = 0.739 is the weak point, consistent with zero-shot LLM behaviour on residual categories. Milei κ = 0.616 is the lowest by president but above the 0.60 minimum; no systematic directional bias detected.
+
+**Figures:** `outputs/figures/validation_*.png` (4 charts — confusion matrix, per-class metrics, president breakdown, error analysis).
+
+**Note on BBD filter audit:** The human validation sample was drawn exclusively from fiscal paragraphs (is_fiscal=True), so it validates LLM scoring accuracy but not keyword filter precision/recall. A separate filter audit (sampling from both fiscal and non-fiscal paragraphs) remains pending — see What Still Needs Doing.
 
 ---
 
@@ -268,18 +301,13 @@ Checkpoint/resume: `data/interim/llm_scores_checkpoint.json` — delete to resco
 
 ### BLOCKING — required before thesis defense
 
-1. **Human validation** ← most important remaining task
-   - Label ~60 paragraphs (20 per class: hawkish/neutral/dovish), stratified by president
-   - Run confusion matrix and compute precision/recall/F1 vs LLM scores
-   - Break down accuracy by president — systematic bias for Milei would be a problem; random error is defensible via aggregation argument
-   - If zero-shot F1 is low (~0.6), frame as: consistent with Hansen & Kazinnik (2024) and BoE SWP 1127; aggregation to monthly level attenuates noise; LLM-dictionary ρ = 0.835 is primary evidence
-   - Place labeled examples in `signal/validation/human_labels.csv`
-
-2. **Fix scoring_summary.txt header** — still says "v7" in the output title line. One-line fix in the script's summary text before next rerun, or edit the file directly.
+1. **Fix scoring_summary.txt header** — still says "v7" in the output title line. One-line fix in the script's summary text before next rerun, or edit the file directly.
 
 ### Signal robustness (complete before econometrics)
 
-3. **Few-shot robustness run** — Add 9 labeled examples (3 per class) to prompt in `llm_scoring.py`. Delete checkpoint. Re-run (~$1.09). Compare monthly ρ against zero-shot baseline (target ρ > 0.85). Candidate examples already identified in the "Zero-shot vs few-shot design" section below.
+2. **Few-shot robustness run** ← NEXT TASK — Add 9 labeled examples (3 per class) to prompt in `llm_scoring.py`. Delete checkpoint. Re-run (~$1.09, ~$3.27 for Sonnet). Compare monthly ρ against zero-shot baseline (target ρ > 0.85). Candidate examples already identified in the "Zero-shot vs few-shot design" section. Also run with `--model claude-sonnet-4-6` for model-version robustness (both runs in same session, ~$4.36 total using batch API discount).
+
+3. **BBD keyword filter audit** — separate from LLM validation. Sample ~100 paragraphs from full corpus (mix of is_fiscal=True and is_fiscal=False), label each as genuinely fiscal/non-fiscal, compute filter precision/recall. Pending — was not combined with LLM validation (which was done on fiscal-only sample).
 
 4. **Ideology paragraph spot-check** — 1,593 paragraphs still excluded (Milei: 1,106). Sample ~50 Milei ideology-only paragraphs post-v8 to verify `emision` keyword now catches the main false negatives. If >20% of remaining excluded Milei paragraphs score ±1, reconsider inclusion.
 
@@ -372,6 +400,7 @@ python signal/scoring/llm_scoring.py             # full run
 - **Dead dictionary term:** `actualizacion tarifaria` — zero hits across full corpus; remove or note in audit
 - **Shared signal file:** `llm_signal_v8.csv` at project root — delivered to econometrics group 2026-05-02
 - **LLM model used:** claude-haiku-4-5-20251001, temperature=0
+- **Human validation (2026-05-13):** 72 paragraphs labeled; accuracy=0.833, macro F1=0.831, κ=0.750; zero extreme errors; all errors adjacent-class; by president: Macri κ=0.737 / AF κ=0.690 / Milei κ=0.616
 
 ---
 

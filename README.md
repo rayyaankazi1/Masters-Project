@@ -8,7 +8,7 @@ Does the fiscal-hawkishness content of presidential communication causally shift
 
 ## Approach in one paragraph
 
-We construct a monthly time series of fiscal hawkishness from Argentine presidential speeches (2015–2026) using a validated dictionary-based NLP pipeline, cross-checked against LLM-based scoring and human labels. We embed this series in Local Projections (Jordà 2005) as the primary identification strategy, testing for regime heterogeneity in the rhetoric-to-expectations pass-through via a Milei interaction term. A BVAR is retained as a robustness check.
+We construct a monthly time series of fiscal hawkishness from Argentine presidential speeches (2015–2026) using a validated dictionary-based NLP pipeline, cross-checked against LLM-based scoring and human labels (macro F1 = 0.831, κ = 0.750, n = 72). We embed this series in Local Projections (Jordà 2005) as the primary identification strategy, testing for regime heterogeneity in the rhetoric-to-expectations pass-through via a Milei interaction term. A BVAR is retained as a robustness check.
 
 ## Theoretical grounding
 
@@ -174,12 +174,13 @@ Primary signal `net_hawkish_llm_z` is in `data/processed/bvar_signal_llm.csv` an
 
 **Known data issue:** February 2026 Milei has P_t = 1 (single ceremonial paragraph, `deuda` false positive). Signal = −0.113z; anomalously low and should be flagged or excluded in the LP estimation.
 
+**Human validation complete (2026-05-13).** 72 paragraphs labeled (stratified, blinded). Results: accuracy = 0.833, macro F1 = 0.831, Cohen's κ = 0.750. Zero extreme errors (no dovish↔hawkish misclassifications). Per-class F1: dovish 0.857 / neutral 0.739 / hawkish 0.898. By president: Macri κ = 0.737 / AF κ = 0.690 / Milei κ = 0.616. Validation figures in `outputs/figures/validation_*.png`.
+
 **Active priorities:**
-1. Human validation — label ~60 paragraphs, report precision/recall/F1 vs LLM. **Blocking for defense.**
-2. Few-shot robustness run — 9 labeled examples in prompt, compare ρ against zero-shot.
+1. Few-shot robustness run — 9 labeled examples in prompt, compare ρ against zero-shot. Also run with Sonnet for model-version robustness (~$4–5 total). **NEXT.**
+2. BBD keyword filter audit — sample mixed fiscal/non-fiscal paragraphs, label as fiscal/non-fiscal, report filter precision/recall.
 3. External validation — correlate `net_hawkish_llm_z` with primary balance, EMBI+, ARS/USD.
 4. Local projections — group handling; use `llm_signal_v8.csv`; LP spec uses `y_{t+h} − y_{t−1}` (cumulative changes).
-5. LP slide equation fix — current presentation slide uses `∆y_{t+h}`; must be corrected to `y_{t+h} − y_{t−1}` before final version.
 
 ## References
 
