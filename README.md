@@ -1,6 +1,6 @@
 # Fiscal Hawkishness and Inflation Expectations in Argentina (2015–2026)
 
-A master's thesis project combining natural language processing of Argentine presidential speeches with Bayesian structural VAR analysis to study how fiscal-policy rhetoric affects the anchoring of inflation expectations under Macri, Fernandez and Milei.
+A master's thesis project combining natural language processing of Argentine presidential speeches with a two-stage econometric identification strategy — Dynamic Factor Model purging followed by Local Projections — to study how fiscal-policy rhetoric causally affects inflation expectations under Macri, Fernández and Milei. A Structural BVAR is retained as a robustness check.
 
 ## Research question
 
@@ -8,11 +8,11 @@ Does the fiscal-hawkishness content of presidential communication causally shift
 
 ## Approach in one paragraph
 
-We construct a monthly time series of fiscal hawkishness from Argentine presidential speeches (2015–2026) using a validated dictionary-based NLP pipeline, cross-checked against LLM-based scoring and human labels (macro F1 = 0.831, κ = 0.750, n = 72). We embed this series in Local Projections (Jordà 2005) as the primary identification strategy, testing for regime heterogeneity in the rhetoric-to-expectations pass-through via a Milei interaction term. A BVAR is retained as a robustness check.
+We construct a monthly fiscal hawkishness index from Argentine presidential speeches (2015–2026) by scoring 3,904 fiscal paragraphs with a large language model (Claude Haiku, zero-shot blind rubric), aggregated via the Baker, Bloom & Davis (2016) EPU methodology. The signal is validated against an independent dictionary measure (Spearman ρ = 0.835), human labels (macro F1 = 0.831, κ = 0.750, n = 72), and a few-shot robustness run (ρ = 0.969 vs zero-shot). To address endogeneity — presidents respond to economic conditions, so the raw signal conflates genuine communication surprises with endogenous responses — we fit a Dynamic Factor Model to core macro variables (inflation, EMAE, fiscal balance) and use the residuals from a regression of the index on the estimated factors as a purged communication shock (Bernoth 2025). These residuals are passed to Local Projections (Jordà 2005) with a Milei interaction term to test for regime heterogeneity in the rhetoric-to-expectations pass-through; a wild bootstrap covers the full two-stage procedure. A Structural BVAR is retained as a robustness check.
 
 ## Theoretical grounding
 
-The econometric design follows Istrefi and Piloiu (2014), who use a news-based policy measure in a structural BVAR to study the response of long-horizon inflation expectations to policy shocks. 
+The identification strategy follows Bernoth (2025), who constructs ECB communication shocks as residuals from a regression of the stance indicator on macro-financial variables — the same logic applied here to purge the hawkishness index of its endogenous component. Local Projections follow Jordà (2005); the generated-regressor problem from the two-stage procedure is handled via wild bootstrap covering both stages. The BVAR robustness design draws on Istrefi and Piloiu (2014), who use a news-based policy measure in a structural BVAR to study the response of long-horizon inflation expectations to policy shocks.
 
 ## Repository structure
 
@@ -105,7 +105,7 @@ The LLM approach captures fiscal intent communicated through ideological argumen
 
 Milei–AF separation: 2.27 z-units. Cross-validation with dictionary signal: Pearson r = 0.839, Spearman ρ = 0.835 (monthly z-scores, n = 123). January 2024 (Davos): LLM z = +1.542, dictionary z = +0.238 — LLM correctly captures ideological hawkishness that dictionary misses. v8 rerun complete 2026-05-02, cost $1.09, model claude-haiku-4-5-20251001 at temperature=0.
 
-**Pending robustness (Stage 5b):** re-run with few-shot prompting (9 labeled Spanish examples covering all three presidents and edge cases); compare Spearman ρ against zero-shot baseline. Human validation holdout: ~60 manually labeled paragraphs, precision/recall/F1 reported (required before thesis defense).
+**Stage 5b — Few-shot robustness: COMPLETE (2026-05-14).** Re-run with 9 labeled calibration examples (3 per class, corpus-drawn, president names stripped). Spearman ρ = 0.969 vs zero-shot baseline; stability target ρ > 0.85 met. Score distributions shift slightly toward neutral (expected calibration effect) but monthly z-scores are essentially unchanged (max president-level diff = 0.007z). Results in `data/interim/monthly_signal_llm_fewshot.csv`; summary in `outputs/tables/llm_scoring_summary_fewshot.txt`.
 
 ### Stage 6. Validation (`signal/validation/`)
 
@@ -183,14 +183,15 @@ Primary signal `net_hawkish_llm_z` is in `data/processed/bvar_signal_llm.csv` an
 **Human validation complete (2026-05-13).** 72 paragraphs labeled (stratified, blinded). Results: accuracy = 0.833, macro F1 = 0.831, Cohen's κ = 0.750. Zero extreme errors (no dovish↔hawkish misclassifications). Per-class F1: dovish 0.857 / neutral 0.739 / hawkish 0.898. By president: Macri κ = 0.737 / AF κ = 0.690 / Milei κ = 0.616. Validation figures in `outputs/figures/validation_*.png`.
 
 **Active priorities:**
-1. Few-shot robustness run — 9 labeled examples in prompt, compare ρ against zero-shot. Also run with Sonnet for model-version robustness (~$4–5 total). **NEXT.**
-2. BBD keyword filter audit — sample mixed fiscal/non-fiscal paragraphs, label as fiscal/non-fiscal, report filter precision/recall.
-3. External validation — correlate `net_hawkish_llm_z` with primary balance, EMBI+, ARS/USD.
-4. Econometrics — group handling; updated approach (2026-05-14):
-   - Stage 1: DFM on inflation (INDEC IPC), EMAE, fiscal balance → extract 1–2 factors
-   - Stage 2: regress `net_hawkish_llm_z` on factors → residuals = purged communication shock
-   - Stage 3: LP with residuals + Milei interaction; wild bootstrap covers full two-stage procedure
-   - Use `llm_signal_v8.csv` (delivered 2026-05-02); LP spec `y_{t+h} − y_{t−1}` (cumulative changes)
+1. ~~Few-shot robustness~~ **COMPLETE** — ρ = 0.969 vs zero-shot; stable.
+2. Signal compilation **COMPLETE** — `data/processed/signals_clean.csv` (125 months; columns: `signal_main`, `signal_robust`, `signal_dictionary`; transition months resolved; zero-fill flagged).
+3. BBD keyword filter audit — sample mixed fiscal/non-fiscal paragraphs, label as fiscal/non-fiscal, report filter precision/recall.
+4. External validation — correlate `signal_main` with primary balance, EMBI+, ARS/USD parallel rate.
+5. Econometrics (group) — DFM → residual shock → LP:
+   - Stage 1: DFM on inflation (INDEC IPC), EMAE, fiscal balance → 1–2 factors
+   - Stage 2: regress `signal_main` on factors → residuals = purged communication shock
+   - Stage 3: LP spec `y_{t+h} − y_{t−1}` + Milei interaction + wild bootstrap (full two-stage)
+   - Input file: `data/processed/signals_clean.csv` (delivered 2026-05-02 as `llm_signal_v8.csv`)
 
 ## References
 
@@ -211,6 +212,8 @@ Apel, M., & Blix Grimaldi, M. (2014). How informative are central bank minutes? 
 Hansen, S., & McMahon, M. (2016). Shocking language: understanding the macroeconomic effects of central bank communication. *Journal of International Economics* 99.
 
 Shapiro, A. H., & Wilson, D. J. (2019). Taking the Fed at its word: a new approach to estimating central bank objectives using text analysis. FRBSF Working Paper 2019-02.
+
+Jordà, Ò. (2005). Estimation and inference of impulse responses by local projections. *American Economic Review* 95(1), 161–182.
 
 Bernoth, K. (2025). Dovish coos or hawkish screech? Measuring ECB communication using large language models. *DIW Berlin Discussion Paper* 2137.
 
