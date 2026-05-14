@@ -1,0 +1,33 @@
+=== LLM SCORING SUMMARY (Stage 5b — FEW-SHOT ROBUSTNESS) ===
+Model          : claude-haiku-4-5-20251001
+Mode           : Few-shot (9 labeled examples in system prompt)
+Scored         : 3,895 fiscal paragraphs
+Excluded (examples): 9 para IDs — [3312, 3638, 4633, 6362, 6736, 7980, 8454, 11561, 14816]
+Batches        : 390  (batch size 10)
+
+── FEW-SHOT LLM SCORE DISTRIBUTION BY PRESIDENT ─────────────────────
+  President     N   Hawkish   Neutral    Dovish      H%      D%
+  Macri      871       212       523       136   24.3%   15.6%
+  AF        1136        56       576       504    4.9%   44.4%
+  Milei     1888      1309       573         6   69.3%    0.3%
+
+── MONTHLY SIGNAL SUMMARY (FEW-SHOT LLM) ────────────────────────────
+  President     N    Mean-z     Std-z     Min-z     Max-z
+  Macri       49    +0.172     0.619    -1.176    +1.491
+  AF          47    -0.977     0.399    -1.425    +0.421
+  Milei       29    +1.292     0.358    -0.149    +1.590
+
+── CROSS-VALIDATION: FEW-SHOT LLM vs DICTIONARY ─────────────────────
+  Pearson  r  = 0.8428
+  Spearman ρ  = 0.8352
+  Target ρ ≥ 0.65: MET
+
+── KEY ROBUSTNESS CHECK: FEW-SHOT vs ZERO-SHOT ──────────────────────
+  Pearson  r  = 0.9784
+  Spearman ρ  = 0.9694
+  Stability target ρ > 0.85: MET
+
+  President  Mean-z (FS)   Mean-z (ZS)      Diff
+  Macri          +0.172        +0.179    -0.007
+  AF             -0.977        -0.983    +0.007
+  Milei          +1.292        +1.291    +0.001
