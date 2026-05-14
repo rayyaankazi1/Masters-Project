@@ -4,7 +4,7 @@ A master's thesis project combining natural language processing of Argentine pre
 
 ## Research question
 
-Does the fiscal-hawkishness content of presidential communication causally shift inflation expectations in Argentina, and has the pass-through from rhetoric to expectations changed under the Milei administration? The hypothesis is that presidential speech moves expectations more strongly when the speaker's observable policy actions make rational deception implausible — a condition arguably satisfied post-December 2023 but not under prior administrations.
+Does the fiscal-hawkishness content of presidential communication causally shift inflation expectations in Argentina, and has the pass-through from rhetoric to expectations changed under the Milei administration? 
 
 ## Approach in one paragraph
 
