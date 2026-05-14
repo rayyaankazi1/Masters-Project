@@ -1,13 +1,15 @@
 # Masters-Project — Claude Handoff Document
-**Last updated:** 2026-05-13 (human validation complete; validation figures generated; next: few-shot robustness run)  
+**Last updated:** 2026-05-14 (econometric approach updated to DFM → residual shock → LP)  
 **Author:** Rayyaan Kazi (BSE Master's student)  
-**Project:** Fiscal hawkishness NLP signal from Argentine presidential speeches as input to Local Projections (Jordà 2005) — supervisor-recommended primary identification strategy. BVAR retained as robustness check.
+**Project:** Fiscal hawkishness NLP signal from Argentine presidential speeches. Primary identification: Dynamic Factor Model of macro variables → regress signal on factors → use residuals as purged communication shock in Local Projections (Jordà 2005). BVAR retained as robustness check.
 
 ---
 
 ## Project Goal
 
-Construct a monthly fiscal hawkishness signal from Argentine presidential speeches (Macri 2015–2019, Alberto Fernández 2019–2023, Milei 2023–2026) and use it as an identified shock series in Local Projections (Jordà 2005) to estimate macroeconomic responses to fiscal stance changes, with regime heterogeneity tested via a Milei interaction term. BVAR is retained as a robustness check.
+Construct a monthly fiscal hawkishness signal from Argentine presidential speeches (Macri 2015–2019, Alberto Fernández 2019–2023, Milei 2023–2026). The primary identification strategy is a two-stage procedure: (1) estimate a Dynamic Factor Model (DFM) of macro variables to summarise economic conditions; (2) regress the hawkishness signal on the DFM factors and use the residuals as a purged communication shock series in Local Projections (Jordà 2005). Regime heterogeneity is tested via a Milei interaction term. BVAR is retained as a robustness check.
+
+**Key identification rationale:** The raw signal captures both the president's endogenous response to economic conditions and genuine communication surprises. Projecting the signal onto DFM factors strips out the predictable component, leaving the unexpected hawkishness shock. This follows Bernoth (2025), who constructs communication shocks as residuals from a regression of the stance indicator on macro-financial variables.
 
 **Primary LP input:** `net_hawkish_llm_z` in `data/interim/monthly_signal_llm.csv`  
 **Robustness/replication check:** `net_hawkish_z` in `data/interim/monthly_signal.csv`
@@ -35,11 +37,18 @@ Stage 5c: Validation    signal/validation/                            ✓ COMPLE
            ↓  72 human-labeled paragraphs; macro F1=0.831, κ=0.750, accuracy=0.833
 Stage 6: External valid (not yet built)                               ← PENDING
            ↓  correlate net_hawkish_llm_z with primary balance, EMBI+, ARS/USD
-Stage 7: Local Projections  econometrics/                             ← IN PROGRESS (group)
-           ↓  Jordà (2005) LP-IRFs, regime heterogeneity via interaction term
-           ↓  PRIMARY approach; BVAR retained as robustness
+Stage 7a: DFM              econometrics/identification/               ← IN PROGRESS (group)
+           ↓  Dynamic Factor Model of macro variables (inflation, EMAE, fiscal balance)
+           ↓  Extract 1–2 factors summarising economic conditions
+Stage 7b: Shock extraction econometrics/identification/               ← IN PROGRESS (group)
+           ↓  Regress net_hawkish_llm_z on DFM factors → residuals = purged shock
+           ↓  NOTE: generated regressor — must bootstrap full two-stage procedure
+Stage 7c: Local Projections econometrics/estimation/                  ← IN PROGRESS (group)
+           ↓  Jordà (2005) LP-IRFs using residual shock series
            ↓  LP spec: y_{t+h} − y_{t−1} (cumulative changes) — NOT ∆y_{t+h}
-           ↓  HAC SEs + wild bootstrap (B=500, Rademacher); L=1 lag by BIC
+           ↓  Milei interaction term: shock_t × Milei_t
+           ↓  HAC SEs (lags=4) + wild bootstrap (B=500, Rademacher) — bootstrap covers full two-stage
+           ↓  BVAR retained as robustness
 ```
 
 ---
@@ -315,9 +324,9 @@ Checkpoint/resume: `data/interim/llm_scores_checkpoint.json` — delete to resco
 
 ### Data issues to document explicitly
 
-6. **Two missing AF months** — January 2020 and November 2023 have zero fiscal paragraphs and are absent from the LLM signal. Must state explicitly in the thesis data section: whether these are excluded, imputed, or treated as structural zeros. Currently undocumented.
+6. **Two missing AF months** — January 2020 and November 2023 have zero fiscal paragraphs. **Decision (2026-05-14): scored as 0** — absence of fiscal communication treated as neutral stance, not imputed. Stated in thesis data section (Section 3.1). Rationale: imputation conflates absence with balance; zero is more conservative.
 
-7. **February 2026 anomaly** — Milei has P_t=1 (single fiscal paragraph that month: "saldando una deuda histórica" — ceremonial speech about San Martín's sword, caught by `deuda` keyword). Signal = −0.113z, anomalously low. Flag in data as a thin-month false positive. Consider adding a P_t threshold (e.g. P_t ≥ 3) below which months are excluded or down-weighted.
+7. **February 2026 anomaly** — Milei has P_t=1 (single fiscal paragraph that month: "saldando una deuda histórica" — ceremonial speech about San Martín's sword, caught by `deuda` keyword). Signal = −0.113z, anomalously low. **Decision (2026-05-14): retained in signal series and estimation sample.** Stated in thesis data section (Section 3.1).
 
 ### External validation (Stage 6)
 
@@ -328,14 +337,17 @@ Checkpoint/resume: `data/interim/llm_scores_checkpoint.json` — delete to resco
 
 ### Econometrics (Stage 7) — being handled by group
 
-9. **Local projections** — Primary identification strategy (Jordà 2005). For each outcome variable y and horizon h:
-   - **Correct spec:** `y_{t+h} − y_{t−1} = αh + βh·shock_t + δh·(shock_t × Milei_t) + γh·controls_t + ε_{t+h}`
-   - LHS is **cumulative change** from t−1 to t+h — NOT `∆y_{t+h}` (first difference at horizon h). The current LP slide in the presentation uses `∆y_{t+h}` which needs correcting before final version.
-   - δh directly estimates the regime difference in IRF at each horizon
-   - HAC SEs (lags=4) + wild bootstrap (B=500, Rademacher) for 95% bands
-   - LP-IV using narrative instrument events (Montiel Olea & Plagborg-Møller 2021)
+9. **DFM → residual shock → LP** — Updated identification strategy (2026-05-14):
+   - **Stage 1 — DFM:** Fit a Dynamic Factor Model to parsimonious set of macro variables: inflation (INDEC IPC), EMAE (monthly GDP proxy), fiscal balance. Do NOT include EMBI+ or ARS/USD in DFM — these are outcome variables affected by communication. Extract 1–2 factors.
+   - **Stage 2 — Shock extraction:** Regress `net_hawkish_llm_z` on DFM factors. Residuals = purged fiscal communication shock. This strips out the endogenous component (president responding to economic conditions).
+   - **Stage 3 — LP:** For each outcome variable y and horizon h:
+     `y_{t+h} − y_{t−1} = αh + βh·ε̂_t + δh·(ε̂_t × Milei_t) + γh·controls_t + u_{t+h}`
+     where ε̂_t are the DFM residuals. LHS is **cumulative change** — NOT `∆y_{t+h}`.
+   - **CRITICAL:** ε̂_t are generated regressors. Wild bootstrap (B=500, Rademacher) must cover the full two-stage procedure, not just the LP stage.
+   - δh directly estimates the Milei regime difference at each horizon
    - Use `llm_signal_v8.csv` (delivered to group 2026-05-02)
-   - BVAR retained in presentation as robustness check (not primary result)
+   - BVAR retained as robustness check (not primary result)
+   - Literature basis: Bernoth (2025) Section 5 — communication shock as residual from macro regression
 
 ### Presentation
 
@@ -410,8 +422,9 @@ python signal/scoring/llm_scoring.py             # full run
 - **Filter design / text methods survey:** Ash & Hansen (2023) *Text Algorithms in Economics*, Annual Review of Economics — embedding approach considered but rejected (anisotropy); BBD keyword approach retained
 - **Aggregation formula:** Baker, Bloom & Davis (2016) (H_t − D_t) / P_t EPU paragraph-counting formula
 - **LLM scoring:** Hansen & Kazinnik (2024) prompted LLM for central bank text (FOMC); Bank of England (2025) SWP 1127 tens-of-shot classification; IMF (2025) WP 2025/109 large-scale LLM central bank speech scoring
-- **BVAR framework:** Bernoth (2025, DIW dp2137) communication shock identification and BVAR specification; Istrefi & Piloiu (2014) inflation expectations BVAR
-- **Communication shock:** Bernoth (2025) residual regression on macro fundamentals; president FE for level differences
+- **DFM identification:** Bernoth (2025, DIW dp2137) Section 5 — communication shock as residual from regressing stance indicator on macro-financial variables; Stock & Watson (2002) dynamic factor models
+- **BVAR framework:** Bernoth (2025, DIW dp2137) BVAR specification; Istrefi & Piloiu (2014) inflation expectations BVAR — retained as robustness
+- **Communication shock / generated regressors:** bootstrap must cover full two-stage DFM → LP procedure
 - **Dictionary basis:** Blanchard & Leigh (2013) fiscal multipliers; Dornbusch & Edwards (1991) populist cycles; Alesina & Ardagna (2010); Kopits & Symansky (1998) fiscal rules; Barro-Gordon credibility
 - **Document unit sensitivity:** Gentzkow, Kelly & Taddy (2019) text-as-data survey — basis for sentence-level robustness check
 - **TVP-VAR:** Primiceri (2005) time-varying structural VARs

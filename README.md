@@ -129,27 +129,33 @@ Monthly aggregation uses EPU-style pooling: H_t, D_t, P_t are summed across all 
 
 Merges the monthly hawkishness signal with macro data: inflation (INDEC IPC Nacional, with pre-2017 caveats noted), REM inflation expectations (12m and 24m horizons, plus cross-sectional dispersion as an anchoring proxy), the ARS parallel-market premium, EMBI-Argentina, the monetary policy rate, and a fiscal-balance series. All series run at monthly frequency over 2015m1–2026m2.
 
-### Stage 2. Estimation (`econometrics/estimation/`)
+### Stage 2. Identification — DFM + Residual Shock (`econometrics/identification/`)
 
-**Primary approach: Local Projections (Jordà 2005)**, recommended by supervisor. For each outcome variable y and horizon h = 0, 1, ..., H:
+The primary identification strategy follows a two-stage procedure designed to purge the raw hawkishness signal of its endogenous component — the part that reflects the president responding to prevailing economic conditions rather than communicating an exogenous stance.
 
-`y_{t+h} − y_{t−1} = αh + βh·shock_t + δh·(shock_t × Milei_t) + γh·controls_t + ε_{t+h}`
+**Stage 2a — Dynamic Factor Model.** A DFM is estimated on a parsimonious set of macro variables: monthly inflation (INDEC IPC Nacional), a monthly GDP proxy (EMAE), and the fiscal balance. Variables that are themselves outcomes of interest — EMBI+, ARS/USD, REM inflation expectations — are excluded from the DFM to avoid over-purging the signal. One to two factors are extracted, summarising the state of the macroeconomy at each point in time.
 
-The LHS is the **cumulative change** from t−1 to t+h — not the first difference `∆y_{t+h}`. This directly traces the IRF without needing to cumulate across horizons and is stationary for I(1) outcome variables. βh traces the baseline IRF; δh directly estimates the *difference* in response under Milei vs prior presidents. Inference uses HAC standard errors (lags=4) for point estimates and wild bootstrap (B=500, Rademacher weights) for 95% confidence bands. Lag order L=1 selected by BIC. Implemented in R using the `lpirfs` package.
+**Stage 2b — Shock extraction.** The monthly hawkishness signal `net_hawkish_llm_z` is regressed on the DFM factors. The residuals from this regression constitute the purged fiscal communication shock: the component of presidential rhetoric that is orthogonal to prevailing economic conditions and therefore plausibly exogenous. This approach follows Bernoth (2025, Section 5), who constructs ECB communication shocks as residuals from a regression of the communication stance indicator on macro-financial variables.
 
-**Robustness:** LP-IV using the narrative instrument (Montiel Olea & Plagborg-Møller 2021) — events include DNU 70/2023, the December 2023 devaluation announcement, Ley Bases votes, inauguration addresses, Davos/CPAC appearances. Weak-IV tests (Olea–Pflueger) reported.
+### Stage 3. Estimation — Local Projections (`econometrics/estimation/`)
 
-### Stage 3. Identification (`econometrics/identification/`)
+**Primary approach: Local Projections (Jordà 2005)**. For each outcome variable y and horizon h = 0, 1, ..., H:
 
-Regime heterogeneity is tested via the interaction term δh in the LP specification. The headline exhibit is the **pre-Milei vs. post-Milei IRF comparison**: plotting βh (baseline) and βh + δh (Milei regime) with confidence bands for the response of 12m and 24m REM inflation expectations to a one-standard-deviation hawkishness shock.
+`y_{t+h} − y_{t−1} = αh + βh·ε̂_t + δh·(ε̂_t × Milei_t) + γh·controls_t + u_{t+h}`
+
+where ε̂_t are the DFM residuals from Stage 2b. The LHS is the **cumulative change** from t−1 to t+h — not the first difference `∆y_{t+h}`. βh traces the baseline IRF; δh directly estimates the *difference* in response under Milei vs prior presidents.
+
+**Important:** ε̂_t are generated regressors. The wild bootstrap (B=500, Rademacher weights) must cover the full two-stage procedure — DFM estimation, residual extraction, and LP — not just the LP stage alone. HAC standard errors (lags=4) are used for point estimates. Lag order L=1 selected by BIC. Implemented in R using the `lpirfs` package.
 
 ### Stage 4. Results (`econometrics/results/`)
+
+Regime heterogeneity is tested via the interaction term δh in the LP specification. The headline exhibit is the **pre-Milei vs. post-Milei IRF comparison**: plotting βh (baseline) and βh + δh (Milei regime) with confidence bands for the response of 12m and 24m REM inflation expectations to a one-standard-deviation purged hawkishness shock.
 
 IRFs for each outcome variable (REM inflation expectations, EMBI+ spread, ARS CCL rate) at horizons h = 0, ..., 24 months. Headline test: is δh statistically different from zero for inflation expectations, and does the sign make economic sense (hawkish communication → lower expectations under Milei).
 
 ### Stage 5. Robustness (`econometrics/robustness/`)
 
-Dictionary vs. LLM signal in LP, alternative lag lengths, subsample stability (pre-Milei only), alternative monthly aggregation rules (word-count vs. equal-weight), sentence-level vs. paragraph-level LLM scoring, and alternative inflation-expectation measures (UTDT household survey as a non-professional complement). BVAR with Cholesky identification retained as an additional robustness frame.
+Dictionary vs. LLM signal in LP, alternative lag lengths, subsample stability (pre-Milei only), alternative monthly aggregation rules (word-count vs. equal-weight), sentence-level vs. paragraph-level LLM scoring, alternative inflation-expectation measures (UTDT household survey as a non-professional complement), and LP using the raw signal without DFM purging (to show identification adds value). BVAR with Cholesky identification retained as an additional robustness frame.
 
 ## Data sources
 
@@ -180,7 +186,11 @@ Primary signal `net_hawkish_llm_z` is in `data/processed/bvar_signal_llm.csv` an
 1. Few-shot robustness run — 9 labeled examples in prompt, compare ρ against zero-shot. Also run with Sonnet for model-version robustness (~$4–5 total). **NEXT.**
 2. BBD keyword filter audit — sample mixed fiscal/non-fiscal paragraphs, label as fiscal/non-fiscal, report filter precision/recall.
 3. External validation — correlate `net_hawkish_llm_z` with primary balance, EMBI+, ARS/USD.
-4. Local projections — group handling; use `llm_signal_v8.csv`; LP spec uses `y_{t+h} − y_{t−1}` (cumulative changes).
+4. Econometrics — group handling; updated approach (2026-05-14):
+   - Stage 1: DFM on inflation (INDEC IPC), EMAE, fiscal balance → extract 1–2 factors
+   - Stage 2: regress `net_hawkish_llm_z` on factors → residuals = purged communication shock
+   - Stage 3: LP with residuals + Milei interaction; wild bootstrap covers full two-stage procedure
+   - Use `llm_signal_v8.csv` (delivered 2026-05-02); LP spec `y_{t+h} − y_{t−1}` (cumulative changes)
 
 ## References
 
