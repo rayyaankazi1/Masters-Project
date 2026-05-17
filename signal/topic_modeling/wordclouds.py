@@ -135,7 +135,7 @@ def save_wc(wc: WordCloud, title: str, path: str):
     fig, ax = plt.subplots(figsize=(14, 6))
     ax.imshow(wc, interpolation="bilinear")
     ax.axis("off")
-    ax.set_title(title, fontsize=14, fontweight="bold", pad=12)
+    ax.set_title(title, fontsize=22, fontweight="bold", pad=16)
     plt.tight_layout()
     plt.savefig(path, dpi=150, bbox_inches="tight")
     plt.close()
@@ -165,9 +165,10 @@ def plot_fiscal_filtered(para_df: pd.DataFrame):
             "Greens" if pres == "AF" else
             "Oranges"
         ))
+        display_name = {"Macri": "Macri", "AF": "Fernández", "Milei": "Milei"}[pres]
         save_wc(
             wc,
-            f"Fiscal vocabulary — {pres} (v8 BBD filter)",
+            f"Fiscal Vocabulary — {display_name}",
             os.path.join(FIGURES_DIR, f"wc_fiscal_{pres.lower()}.png"),
         )
 
