@@ -1,21 +1,9 @@
 """
 signal/topic_modeling/wordclouds.py────────────────────────────────────
-Descriptive word cloud visualisations using the v8 pipeline output.
+Fiscal word cloud visualisations — per-president, v8 BBD fiscal filter.
 
 Fiscal filter: uses is_fiscal flag from paragraphs_scored.csv (BBD 2016
 22-keyword approach) — NOT the old LDA fiscal_topic_prob threshold.
-
-Four sets of outputs
-─────────────────────
-1. Whole-corpus clouds     — full tokenised vocabulary, all presidents combined
-                             then per president. Shows overall rhetorical profile.
-2. Fiscal-filtered clouds  — paragraphs where is_fiscal == True (v8 BBD filter),
-                             all presidents combined then per president.
-3. Ideology-filtered clouds— paragraphs where is_ideology == True,
-                             all presidents combined then per president.
-4. Comparison panels       — fiscal vs non-fiscal side by side for each
-                             president. Key validation exhibit: demonstrates
-                             the filter selects meaningfully different language.
 
 Reads
 -----
@@ -23,13 +11,9 @@ Reads
 
 Writes
 ------
-  outputs/figures/wc_corpus_all.png
-  outputs/figures/wc_corpus_<president>.png
-  outputs/figures/wc_fiscal_all.png
-  outputs/figures/wc_fiscal_<president>.png
-  outputs/figures/wc_ideology_all.png
-  outputs/figures/wc_ideology_<president>.png
-  outputs/figures/wc_compare_<president>.png
+  outputs/figures/wc_fiscal_macri.png
+  outputs/figures/wc_fiscal_af.png
+  outputs/figures/wc_fiscal_milei.png
 """
 
 import os
@@ -41,8 +25,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
-from gensim.models import Phrases
-from gensim.models.phrases import Phraser
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _HERE        = os.path.dirname(os.path.abspath(__file__))
@@ -51,9 +33,8 @@ PARA_CSV     = os.path.join(_ROOT, "data", "interim", "paragraphs_scored.csv")
 FIGURES_DIR  = os.path.join(_ROOT, "outputs", "figures")
 
 # ── Config ────────────────────────────────────────────────────────────────────
-FISCAL_MIN_PROB = 0.25
-PRES_ORDER      = ["Macri", "AF", "Milei"]
-PRES_COLORS     = {
+PRES_ORDER  = ["Macri", "AF", "Milei"]
+PRES_COLORS = {
     "Macri": ("#BBDEFB", "#1565C0"),   # light blue, dark blue
     "AF":    ("#C8E6C9", "#1B5E20"),   # light green, dark green
     "Milei": ("#FFE0B2", "#BF360C"),   # light orange, dark orange
@@ -62,24 +43,7 @@ MAX_WORDS = 120
 WC_WIDTH  = 1400
 WC_HEIGHT = 700
 
-# ── Phrase detection (visual only — independent of LDA) ───────────────────────
-# Phrases are detected here purely for display quality in word clouds.
-# A lower threshold than LDA (15 vs the LDA's 40) is fine — visual noise
-# in a cloud is far less harmful than topic coherence degradation.
-WC_PHRASES_MIN_COUNT = 5
-WC_PHRASES_THRESHOLD = 15
-
-# Compounds to suppress even if detected — geographic and ceremonial noise.
-WC_PHRASE_BLACKLIST: set[str] = {
-    "buenos_aires", "ciudad_buenos_aires", "mar_plata", "rio_negro",
-    "santa_fe", "san_juan", "san_luis", "la_plata", "tierra_fuego",
-    "muchas_gracias", "muy_bien", "muy_importante", "por_favor",
-    "mas_alla", "dia_dia", "buenas_tardes", "buenas_noches",
-    "america_latina", "estados_unidos", "naciones_unidas", "union_europea",
-}
-
 # ── Stopwords ─────────────────────────────────────────────────────────────────
-# Keep in sync with lda.py — any term you don't want in clouds goes here
 STOPWORDS = {
     "el","la","los","las","un","una","unos","unas",
     "a","ante","bajo","con","contra","de","desde","durante","en","entre",
@@ -149,45 +113,9 @@ def tokenise(text: str) -> list[str]:
         if len(w) >= 4 and w not in STOPWORDS
     ]
 
-def build_phrase_models(para_df: pd.DataFrame) -> tuple[Phraser, Phraser]:
-    """
-    Fit bigram + trigram phrase models on the paragraph corpus.
-    Uses a permissive threshold (WC_PHRASES_THRESHOLD=15) — fine for
-    display quality, independent of the LDA's stricter settings.
-    """
-    texts = para_df["text_para"].astype(str).apply(tokenise).tolist()
-    bigram_model  = Phrases(texts,
-                            min_count=WC_PHRASES_MIN_COUNT,
-                            threshold=WC_PHRASES_THRESHOLD)
-    trigram_model = Phrases(bigram_model[texts],
-                            min_count=WC_PHRASES_MIN_COUNT,
-                            threshold=WC_PHRASES_THRESHOLD)
-    return Phraser(bigram_model), Phraser(trigram_model)
-
-def apply_phrases(tokens: list[str],
-                  bigram: Phraser,
-                  trigram: Phraser) -> list[str]:
-    tokens = list(bigram[tokens])
-    tokens = list(trigram[tokens])
-    # Split any blacklisted compounds back into unigrams
-    result = []
-    for t in tokens:
-        if t in WC_PHRASE_BLACKLIST:
-            result.extend(t.split("_"))
-        else:
-            result.append(t)
-    return result
-
-# Module-level phrase model cache — built once in run(), used by _df_to_text
-_bigram:  Phraser | None = None
-_trigram: Phraser | None = None
-
 def _df_to_text(df: pd.DataFrame) -> str:
-    """Tokenise paragraphs, apply phrase models, join for WordCloud."""
-    tokens_list = df["text_para"].astype(str).apply(
-        lambda t: apply_phrases(tokenise(t), _bigram, _trigram)
-        if _bigram is not None else tokenise(t)
-    )
+    """Tokenise paragraphs and join into a single string for WordCloud."""
+    tokens_list = df["text_para"].astype(str).apply(tokenise)
     return " ".join(" ".join(toks) for toks in tokens_list)
 
 def make_wc(text: str, bg_color: str, colormap: str) -> WordCloud:
@@ -213,43 +141,7 @@ def save_wc(wc: WordCloud, title: str, path: str):
     plt.close()
     print(f"  Saved: {path}")
 
-# ── Shared helper ─────────────────────────────────────────────────────────────
-
-def _df_to_text(df: pd.DataFrame) -> str:
-    """Tokenise paragraphs and join into a single string for WordCloud."""
-    tokens_list = df["text_para"].astype(str).apply(tokenise)
-    return " ".join(" ".join(toks) for toks in tokens_list)
-
-
-# ── 1. Whole-corpus clouds ────────────────────────────────────────────────────
-
-def plot_full_corpus(para_df: pd.DataFrame):
-    print("\n── Whole-corpus word clouds ──────────────────────────────────────")
-
-    # All presidents combined
-    text_all = _df_to_text(para_df)
-    wc = make_wc(text_all, bg_color="white", colormap="plasma")
-    save_wc(wc, "Full corpus vocabulary — all presidents",
-            os.path.join(FIGURES_DIR, "wc_corpus_all.png"))
-
-    # Per president
-    for pres in PRES_ORDER:
-        sub = para_df[para_df["president"] == pres]
-        if sub.empty:
-            continue
-        text = _df_to_text(sub)
-        if len(text.strip()) < 50:
-            print(f"  {pres}: not enough text — skipping.")
-            continue
-        wc = make_wc(text, bg_color="white", colormap=(
-            "Blues" if pres == "Macri" else
-            "Greens" if pres == "AF" else
-            "Oranges"
-        ))
-        save_wc(wc, f"Full corpus vocabulary — {pres}",
-                os.path.join(FIGURES_DIR, f"wc_corpus_{pres.lower()}.png"))
-
-# ── 2. Fiscal-filtered clouds ─────────────────────────────────────────────────
+# ── Fiscal-filtered clouds — per president ────────────────────────────────────
 
 def plot_fiscal_filtered(para_df: pd.DataFrame):
     print("\n── Fiscal-filtered word clouds (v8 BBD is_fiscal flag) ───────────")
@@ -262,13 +154,6 @@ def plot_fiscal_filtered(para_df: pd.DataFrame):
         n = len(fiscal[fiscal["president"] == pres])
         print(f"    {pres}: {n:,} fiscal paragraphs")
 
-    # All presidents combined
-    text_all = _df_to_text(fiscal)
-    wc = make_wc(text_all, bg_color="white", colormap="YlOrRd")
-    save_wc(wc, "Fiscal vocabulary — all presidents (v8 BBD filter)",
-            os.path.join(FIGURES_DIR, "wc_fiscal_all.png"))
-
-    # Per president
     for pres in PRES_ORDER:
         sub = fiscal[fiscal["president"] == pres]
         if sub.empty:
@@ -286,138 +171,33 @@ def plot_fiscal_filtered(para_df: pd.DataFrame):
             os.path.join(FIGURES_DIR, f"wc_fiscal_{pres.lower()}.png"),
         )
 
-# ── 3. Ideology-filtered clouds ───────────────────────────────────────────────
-
-def plot_ideology_filtered(para_df: pd.DataFrame):
-    print("\n── Ideology-filtered word clouds ─────────────────────────────────")
-    if "is_ideology" not in para_df.columns:
-        print("  is_ideology not found — skipping.")
-        return
-    if para_df["is_ideology"].sum() == 0:
-        print("  is_ideology is all False — skipping.")
-        return
-    ideo = para_df[para_df["is_ideology"] == True]
-    print(f"  {len(ideo):,} paragraphs pass ideology filter (is_ideology=True)")
-
-    # All presidents combined
-    text_all = _df_to_text(ideo)
-    wc = make_wc(text_all, bg_color="white", colormap="PuRd")
-    save_wc(wc, f"Ideology vocabulary — all presidents (prob ≥ {FISCAL_MIN_PROB})",
-            os.path.join(FIGURES_DIR, "wc_ideology_all.png"))
-
-    # Per president
-    for pres in PRES_ORDER:
-        sub = ideo[ideo["president"] == pres]
-        if sub.empty:
-            print(f"  {pres}: no ideology paragraphs — skipping.")
-            continue
-        text = _df_to_text(sub)
-        wc = make_wc(text, bg_color="white", colormap=(
-            "Blues" if pres == "Macri" else
-            "Greens" if pres == "AF" else
-            "Oranges"
-        ))
-        save_wc(
-            wc,
-            f"Ideology vocabulary — {pres} (prob ≥ {FISCAL_MIN_PROB})",
-            os.path.join(FIGURES_DIR, f"wc_ideology_{pres.lower()}.png"),
-        )
-
-
-# ── 4. Side-by-side comparison panels ────────────────────────────────────────
-
-def plot_comparison(para_df: pd.DataFrame):
-    """
-    For each president: fiscal paragraphs (left) vs non-fiscal paragraphs (right).
-    Uses v8 BBD is_fiscal flag — not the old LDA fiscal_topic_prob threshold.
-    """
-    print("\n── Comparison panels (fiscal vs non-fiscal, v8 BBD) ──────────────")
-    for pres in PRES_ORDER:
-        sub       = para_df[para_df["president"] == pres]
-        fiscal    = sub[sub["is_fiscal"] == True]
-        nonfiscal = sub[sub["is_fiscal"] == False]
-
-        if fiscal.empty or nonfiscal.empty:
-            print(f"  {pres}: insufficient data for comparison — skipping.")
-            continue
-
-        def get_text(df):
-            return " ".join(df["text_para"].astype(str).apply(
-                lambda t: " ".join(tokenise(t))
-            ))
-
-        text_f  = get_text(fiscal)
-        text_nf = get_text(nonfiscal)
-
-        cmap = "Blues" if pres == "Macri" else "Greens" if pres == "AF" else "Oranges"
-
-        wc_f  = make_wc(text_f,  bg_color="white", colormap=cmap)
-        wc_nf = make_wc(text_nf, bg_color="#F5F5F5", colormap="Greys")
-
-        fig, axes = plt.subplots(1, 2, figsize=(20, 6))
-        fig.suptitle(
-            f"Fiscal vs non-fiscal vocabulary — {pres}  "
-            f"({len(fiscal):,} fiscal / {len(nonfiscal):,} non-fiscal paragraphs)",
-            fontsize=13, fontweight="bold"
-        )
-
-        axes[0].imshow(wc_f, interpolation="bilinear")
-        axes[0].axis("off")
-        axes[0].set_title(
-            "Fiscal paragraphs (v8 BBD keyword filter)",
-            fontsize=11, color="#333333"
-        )
-
-        axes[1].imshow(wc_nf, interpolation="bilinear")
-        axes[1].axis("off")
-        axes[1].set_title(
-            "Non-fiscal paragraphs",
-            fontsize=11, color="#555555"
-        )
-
-        plt.tight_layout()
-        path = os.path.join(FIGURES_DIR, f"wc_compare_{pres.lower()}.png")
-        plt.savefig(path, dpi=150, bbox_inches="tight")
-        plt.close()
-        print(f"  Saved: {path}")
-
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def run():
-    global _bigram, _trigram
     os.makedirs(FIGURES_DIR, exist_ok=True)
 
     print(f"Loading paragraph dataframe from {PARA_CSV}...")
     if not os.path.exists(PARA_CSV):
         raise FileNotFoundError(
-            f"{PARA_CSV} not found. Run signal/topic_modeling/lda.py first."
+            f"{PARA_CSV} not found. Run signal/scoring/tfidf_dictionary.py first."
         )
 
     para_df = pd.read_csv(PARA_CSV)
     para_df = para_df[para_df["president"].isin(PRES_ORDER)]
 
     print(f"  {len(para_df):,} paragraphs loaded")
-    for col, label in [("is_fiscal", "fiscal"), ("is_ideology", "ideology")]:
-        if col in para_df.columns:
-            n = para_df[col].sum()
-            pct = n / len(para_df) * 100
-            print(f"  {label.capitalize()} paragraphs (v8 BBD {col}=True): {n:,} ({pct:.1f}%)")
+    if "is_fiscal" in para_df.columns:
+        n = para_df["is_fiscal"].sum()
+        pct = n / len(para_df) * 100
+        print(f"  Fiscal paragraphs (v8 BBD is_fiscal=True): {n:,} ({pct:.1f}%)")
 
-    print(f"\nBuilding phrase models for word clouds "
-          f"(min_count={WC_PHRASES_MIN_COUNT}, threshold={WC_PHRASES_THRESHOLD})...")
-    _bigram, _trigram = build_phrase_models(para_df)
-    print("  Done.")
-
-    plot_full_corpus(para_df)
     plot_fiscal_filtered(para_df)
-    plot_ideology_filtered(para_df)
-    plot_comparison(para_df)
 
     total = len([
         f for f in os.listdir(FIGURES_DIR)
-        if f.startswith("wc_") and f.endswith(".png")
+        if f.startswith("wc_fiscal_") and f.endswith(".png")
     ])
-    print(f"\nDone — {total} word cloud files in {FIGURES_DIR}/")
+    print(f"\nDone — {total} fiscal word cloud files in {FIGURES_DIR}/")
 
 
 if __name__ == "__main__":
